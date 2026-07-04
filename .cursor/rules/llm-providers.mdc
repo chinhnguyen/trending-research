@@ -1,0 +1,32 @@
+---
+description: Conventions for adding or switching LLM providers
+globs: src/willbe_trends/llm/**
+alwaysApply: false
+---
+
+# LLM Provider Conventions
+
+## Adding a provider
+
+1. Create `src/willbe_trends/llm/<name>_provider.py`
+2. Subclass `LLMProvider` with a unique `name` class attribute
+3. Read config from `Settings` in `config.py`
+4. Register in `PROVIDER_FACTORIES` inside `registry.py`
+5. Document env vars in `.env.example`
+
+## Provider contract
+
+```python
+async def complete(self, system: str, user: str) -> LLMResponse:
+    ...
+```
+
+- Return parsed text in `LLMResponse.content`
+- Set `provider` and `model` on the response
+- Raise clear `ValueError` when required API keys are missing
+
+## Switching providers
+
+- Default: `WILLBE_LLM_PROVIDER` in `.env`
+- Override: `--provider` on CLI commands
+- Never hardcode a provider in research modules — inject `LLMProvider` instances

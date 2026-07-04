@@ -1,0 +1,14 @@
+---
+description: Core standards for Willbe trending research Python code
+alwaysApply: true
+---
+
+# Willbe Trends Standards
+
+- Keep research logic in `src/willbe_trends/research/`; LLM wiring in `src/willbe_trends/llm/`.
+- All new providers implement `LLMProvider` and register in `llm/registry.py`.
+- Model outputs must parse into Pydantic models — never return raw LLM text to callers.
+- Prompt changes belong next to the research module they serve; update `specs/` when behavior changes.
+- Prefer async LLM calls; CLI wraps with `asyncio.run`.
+- Use Typer for CLI commands; Rich for terminal output.
+- Sample inputs live in `samples/`; product behavior docs live in `specs/`.

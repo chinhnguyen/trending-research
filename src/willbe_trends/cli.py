@@ -1,0 +1,160 @@
+import asyncio
+import json
+from pathlib import Path
+from typing import Annotated
+
+import typer
+from dotenv import load_dotenv
+from rich.console import Console
+from rich.panel import Panel
+from rich.table import Table
+
+from willbe_trends.config import LLMProviderName, get_settings
+from willbe_trends.llm.registry import create_provider, list_providers
+from willbe_trends.models.preferences import UserPreferences
+from willbe_trends.models.trends import TrendCategory, TrendReport
+from willbe_trends.research.neutral import research_neutral_trends
+from willbe_trends.research.personalized import research_personalized_trends
+
+load_dotenv()
+
+app = typer.Typer(
+    no_args_is_help=True,
+    help="Willbe AI trending research — neutral and personalized nail trends.",
+)
+console = Console()
+
+
+def _resolve_provider(provider: str | None) -> LLMProviderName | None:
+    if provider is None:
+        return None
+    normalized = provider.strip().lower()
+    if normalized not in list_providers():
+        raise typer.BadParameter(
+            f"Unknown provider '{provider}'. Choose from: {', '.join(list_providers())}"
+        )
+    return normalized  # type: ignore[return-value]
+
+
+def _render_report(report: TrendReport) -> None:
+    console.print(
+        Panel(
+            report.summary,
+            title=f"{report.category.value.title()} · {report.mode.title()} trends",
+            subtitle=f"{report.llm_provider}/{report.llm_model}",
+        )
+    )
+
+    table = Table(show_header=True, header_style="bold")
+    table.add_column("Trend", style="cyan", no_wrap=True)
+    table.add_column("Popularity")
+    table.add_column("Description")
+    table.add_column("Colors")
+
+    for trend in report.trends:
+        colors = ", ".join(trend.colors[:3]) if trend.colors else "—"
+        table.add_row(trend.name, trend.popularity, trend.description, colors)
+
+    console.print(table)
+
+
+def _write_output(report: TrendReport, output: Path | None) -> None:
+    if output is None:
+        return
+    output.parent.mkdir(parents=True, exist_ok=True)
+    output.write_text(report.model_dump_json(indent=2), encoding="utf-8")
+    console.print(f"[green]Saved[/green] {output}")
+
+
+@app.command("providers")
+def providers_cmd() -> None:
+    """List supported LLM providers."""
+    settings = get_settings()
+    for name in list_providers():
+        marker = " (default)" if name == settings.willbe_llm_provider else ""
+        console.print(f"- {name}{marker}")
+
+
+@app.command("neutral")
+def neutral_cmd(
+    category: Annotated[
+        TrendCategory, typer.Argument(help="Trend category to research")
+    ] = TrendCategory.NAILS,
+    provider: Annotated[
+        str | None,
+        typer.Option("--provider", "-p", help="LLM provider override"),
+    ] = None,
+    region: Annotated[
+        str, typer.Option("--region", "-r", help="Geographic focus")
+    ] = "global",
+    output: Annotated[
+        Path | None,
+        typer.Option("--output", "-o", help="Write JSON report to file"),
+    ] = None,
+) -> None:
+    """Research neutral, category-wide trends."""
+    llm = create_provider(_resolve_provider(provider))
+    report = asyncio.run(
+        research_neutral_trends(category=category, llm=llm, region=region)
+    )
+    _render_report(report)
+    _write_output(report, output)
+
+
+@app.command("personalized")
+def personalized_cmd(
+    category: Annotated[
+        TrendCategory, typer.Argument(help="Trend category to research")
+    ] = TrendCategory.NAILS,
+    preferences: Annotated[
+        Path,
+        typer.Option(
+            "--preferences",
+            "-f",
+            help="Path to user preferences JSON",
+        ),
+    ] = Path("samples/user_preferences.json"),
+    provider: Annotated[
+        str | None,
+        typer.Option("--provider", "-p", help="LLM provider override"),
+    ] = None,
+    region: Annotated[
+        str, typer.Option("--region", "-r", help="Geographic focus")
+    ] = "global",
+    output: Annotated[
+        Path | None,
+        typer.Option("--output", "-o", help="Write JSON report to file"),
+    ] = None,
+) -> None:
+    """Research personalized 'you may like it' trends."""
+    if not preferences.exists():
+        raise typer.BadParameter(f"Preferences file not found: {preferences}")
+
+    user_prefs = UserPreferences.model_validate_json(preferences.read_text())
+    llm = create_provider(_resolve_provider(provider))
+    report = asyncio.run(
+        research_personalized_trends(
+            category=category,
+            preferences=user_prefs,
+            llm=llm,
+            region=region,
+        )
+    )
+    _render_report(report)
+    _write_output(report, output)
+
+
+@app.command("validate-preferences")
+def validate_preferences_cmd(
+    preferences: Annotated[
+        Path,
+        typer.Argument(help="Path to user preferences JSON"),
+    ],
+) -> None:
+    """Validate a user preferences JSON file."""
+    data = UserPreferences.model_validate_json(preferences.read_text())
+    console.print(json.dumps(data.model_dump(mode="json"), indent=2))
+
+
+if __name__ == "__main__":
+    app()
