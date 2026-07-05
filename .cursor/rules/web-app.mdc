@@ -1,0 +1,27 @@
+---
+description: Conventions for the FastAPI backend and React web app
+globs: "{src/willbe_trends/api/**,src/willbe_trends/db/**,web/**}"
+alwaysApply: false
+---
+
+# Web App Conventions
+
+## Backend
+
+- Persistence in `db/models.py`; read/write via `db/repository.py`
+- API routes in `api/routes/`; request/response schemas in `api/schemas.py`
+- Every research run saves a `research_reports` row plus child `trend_signals` and `web_citations`
+- Default database: SQLite at `data/willbe.db`
+
+## Frontend
+
+- React + Vite in `web/`
+- Dev proxy: Vite forwards `/api` → `http://127.0.0.1:8000`
+- Production: build `web/dist`, served by FastAPI when present
+
+## Run locally
+
+```bash
+willbe-api          # terminal 1
+cd web && npm run dev  # terminal 2
+```

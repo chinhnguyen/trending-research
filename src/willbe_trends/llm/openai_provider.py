@@ -2,6 +2,8 @@ from openai import AsyncOpenAI
 
 from willbe_trends.config import Settings
 from willbe_trends.llm.base import LLMProvider, LLMResponse
+from willbe_trends.llm.pricing import estimate_cost_usd
+from willbe_trends.models.usage import LLMUsageStats
 
 
 class OpenAIProvider(LLMProvider):
@@ -25,4 +27,17 @@ class OpenAIProvider(LLMProvider):
             temperature=0.4,
         )
         content = response.choices[0].message.content or ""
-        return LLMResponse(content=content, provider=self.name, model=self._model)
+        usage = response.usage
+        stats = None
+        if usage is not None:
+            stats = LLMUsageStats(
+                prompt_tokens=usage.prompt_tokens or 0,
+                completion_tokens=usage.completion_tokens or 0,
+                total_tokens=usage.total_tokens or 0,
+                estimated_cost_usd=estimate_cost_usd(
+                    self._model,
+                    prompt_tokens=usage.prompt_tokens or 0,
+                    completion_tokens=usage.completion_tokens or 0,
+                ),
+            )
+        return LLMResponse(content=content, provider=self.name, model=self._model, usage=stats)

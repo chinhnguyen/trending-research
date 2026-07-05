@@ -9,12 +9,13 @@ from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
 
-from willbe_trends.config import LLMProviderName, get_settings
+from willbe_trends.config import LLMProviderName, SearchProviderName, get_settings
 from willbe_trends.llm.registry import create_provider, list_providers
 from willbe_trends.models.preferences import UserPreferences
 from willbe_trends.models.trends import TrendCategory, TrendReport
 from willbe_trends.research.neutral import research_neutral_trends
 from willbe_trends.research.personalized import research_personalized_trends
+from willbe_trends.search.registry import list_search_providers
 
 load_dotenv()
 
@@ -36,12 +37,29 @@ def _resolve_provider(provider: str | None) -> LLMProviderName | None:
     return normalized  # type: ignore[return-value]
 
 
+def _resolve_search_provider(provider: str | None) -> SearchProviderName | None:
+    if provider is None:
+        return None
+    normalized = provider.strip().lower()
+    if normalized not in list_search_providers():
+        raise typer.BadParameter(
+            f"Unknown search provider '{provider}'. "
+            f"Choose from: {', '.join(list_search_providers())}"
+        )
+    return normalized  # type: ignore[return-value]
+
+
 def _render_report(report: TrendReport) -> None:
+    subtitle = f"{report.llm_provider}/{report.llm_model}"
+    if report.web_research and report.web_research.enabled:
+        subtitle += f" · web:{report.web_research.search_provider}"
+        subtitle += f" · {len(report.web_research.citations)} sources"
+
     console.print(
         Panel(
             report.summary,
             title=f"{report.category.value.title()} · {report.mode.title()} trends",
-            subtitle=f"{report.llm_provider}/{report.llm_model}",
+            subtitle=subtitle,
         )
     )
 
@@ -56,6 +74,16 @@ def _render_report(report: TrendReport) -> None:
         table.add_row(trend.name, trend.popularity, trend.description, colors)
 
     console.print(table)
+
+    if report.web_research and report.web_research.citations:
+        source_table = Table(title="Web sources", show_header=True, header_style="bold")
+        source_table.add_column("Preferred")
+        source_table.add_column("Title")
+        source_table.add_column("URL")
+        for citation in report.web_research.citations[:5]:
+            preferred = "✓" if citation.preferred else ""
+            source_table.add_row(preferred, citation.title[:50], citation.url[:60])
+        console.print(source_table)
 
 
 def _write_output(report: TrendReport, output: Path | None) -> None:
@@ -75,6 +103,15 @@ def providers_cmd() -> None:
         console.print(f"- {name}{marker}")
 
 
+@app.command("search-providers")
+def search_providers_cmd() -> None:
+    """List supported web search providers."""
+    settings = get_settings()
+    for name in list_search_providers():
+        marker = " (default)" if name == settings.willbe_search_provider else ""
+        console.print(f"- {name}{marker}")
+
+
 @app.command("neutral")
 def neutral_cmd(
     category: Annotated[
@@ -87,15 +124,47 @@ def neutral_cmd(
     region: Annotated[
         str, typer.Option("--region", "-r", help="Geographic focus")
     ] = "global",
+    time: Annotated[
+        str | None,
+        typer.Option("--time", "-t", help="Research time period, e.g. 'July 2026'"),
+    ] = None,
     output: Annotated[
         Path | None,
         typer.Option("--output", "-o", help="Write JSON report to file"),
     ] = None,
+    web_search: Annotated[
+        bool,
+        typer.Option("--web-search/--no-web-search", help="Enable web-backed research"),
+    ] = True,
+    search_provider: Annotated[
+        str | None,
+        typer.Option("--search-provider", help="Web search provider override"),
+    ] = None,
+    sources: Annotated[
+        Path | None,
+        typer.Option(
+            "--sources",
+            help="Preferred sources YAML (default: config/preferred_sources.yaml)",
+        ),
+    ] = None,
 ) -> None:
     """Research neutral, category-wide trends."""
+    settings = get_settings()
+    if search_provider:
+        settings = settings.model_copy(
+            update={"willbe_search_provider": _resolve_search_provider(search_provider)}
+        )
     llm = create_provider(_resolve_provider(provider))
     report = asyncio.run(
-        research_neutral_trends(category=category, llm=llm, region=region)
+        research_neutral_trends(
+            category=category,
+            llm=llm,
+            region=region,
+            research_time=time,
+            web_search=web_search,
+            preferred_sources_path=sources,
+            settings=settings,
+        )
     )
     _render_report(report)
     _write_output(report, output)
@@ -121,14 +190,39 @@ def personalized_cmd(
     region: Annotated[
         str, typer.Option("--region", "-r", help="Geographic focus")
     ] = "global",
+    time: Annotated[
+        str | None,
+        typer.Option("--time", "-t", help="Research time period, e.g. 'July 2026'"),
+    ] = None,
     output: Annotated[
         Path | None,
         typer.Option("--output", "-o", help="Write JSON report to file"),
+    ] = None,
+    web_search: Annotated[
+        bool,
+        typer.Option("--web-search/--no-web-search", help="Enable web-backed research"),
+    ] = True,
+    search_provider: Annotated[
+        str | None,
+        typer.Option("--search-provider", help="Web search provider override"),
+    ] = None,
+    sources: Annotated[
+        Path | None,
+        typer.Option(
+            "--sources",
+            help="Preferred sources YAML (default: config/preferred_sources.yaml)",
+        ),
     ] = None,
 ) -> None:
     """Research personalized 'you may like it' trends."""
     if not preferences.exists():
         raise typer.BadParameter(f"Preferences file not found: {preferences}")
+
+    settings = get_settings()
+    if search_provider:
+        settings = settings.model_copy(
+            update={"willbe_search_provider": _resolve_search_provider(search_provider)}
+        )
 
     user_prefs = UserPreferences.model_validate_json(preferences.read_text())
     llm = create_provider(_resolve_provider(provider))
@@ -138,6 +232,10 @@ def personalized_cmd(
             preferences=user_prefs,
             llm=llm,
             region=region,
+            research_time=time,
+            web_search=web_search,
+            preferred_sources_path=sources,
+            settings=settings,
         )
     )
     _render_report(report)

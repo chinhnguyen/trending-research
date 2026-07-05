@@ -2,6 +2,8 @@ from anthropic import AsyncAnthropic
 
 from willbe_trends.config import Settings
 from willbe_trends.llm.base import LLMProvider, LLMResponse
+from willbe_trends.llm.pricing import estimate_cost_usd
+from willbe_trends.models.usage import LLMUsageStats
 
 
 class AnthropicProvider(LLMProvider):
@@ -24,4 +26,18 @@ class AnthropicProvider(LLMProvider):
             temperature=0.4,
         )
         content = response.content[0].text if response.content else ""
-        return LLMResponse(content=content, provider=self.name, model=self._model)
+        stats = None
+        if response.usage is not None:
+            prompt_tokens = response.usage.input_tokens or 0
+            completion_tokens = response.usage.output_tokens or 0
+            stats = LLMUsageStats(
+                prompt_tokens=prompt_tokens,
+                completion_tokens=completion_tokens,
+                total_tokens=prompt_tokens + completion_tokens,
+                estimated_cost_usd=estimate_cost_usd(
+                    self._model,
+                    prompt_tokens=prompt_tokens,
+                    completion_tokens=completion_tokens,
+                ),
+            )
+        return LLMResponse(content=content, provider=self.name, model=self._model, usage=stats)

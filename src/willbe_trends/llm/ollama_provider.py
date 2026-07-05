@@ -2,6 +2,7 @@ import httpx
 
 from willbe_trends.config import Settings
 from willbe_trends.llm.base import LLMProvider, LLMResponse
+from willbe_trends.models.usage import LLMUsageStats
 
 
 class OllamaProvider(LLMProvider):
@@ -30,4 +31,17 @@ class OllamaProvider(LLMProvider):
             data = response.json()
 
         content = data.get("message", {}).get("content", "")
-        return LLMResponse(content=content, provider=self.name, model=self._model)
+        prompt_tokens = int(data.get("prompt_eval_count") or 0)
+        completion_tokens = int(data.get("eval_count") or 0)
+        stats = LLMUsageStats(
+            prompt_tokens=prompt_tokens,
+            completion_tokens=completion_tokens,
+            total_tokens=prompt_tokens + completion_tokens,
+            estimated_cost_usd=0.0,
+        )
+        return LLMResponse(
+            content=content,
+            provider=self.name,
+            model=self._model,
+            usage=stats,
+        )

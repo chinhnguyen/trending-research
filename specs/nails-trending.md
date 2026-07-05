@@ -9,6 +9,16 @@ Deliver two complementary trend experiences for the nails vertical:
 
 Both modes use the same underlying trend schema but different prompts and ranking logic.
 
+## Web research
+
+- Enabled by default (`WILLBE_WEB_SEARCH_ENABLED=true`)
+- Search providers: `duckduckgo` (default), `tavily` (requires `TAVILY_API_KEY`)
+- Preferred sources: `config/preferred_sources.yaml` — list is empty for now; add domains later to boost ranking and trigger `site:` queries
+- Reports include `web_research` with queries, citations, and preferred-source flags
+- Each trend includes a reference `image_url` from image search (DuckDuckGo by default)
+- Disable images via `WILLBE_IMAGE_SEARCH_ENABLED=false`
+- Disable via `--no-web-search` or `WILLBE_WEB_SEARCH_ENABLED=false`
+
 ## Modes
 
 ### Neutral trending
@@ -48,13 +58,17 @@ See `src/willbe_trends/models/trends.py` and `preferences.py`.
 
 ```bash
 willbe-trends neutral nails
+willbe-trends neutral nails --no-web-search
+willbe-trends neutral nails --sources config/preferred_sources.yaml
 willbe-trends personalized nails --preferences samples/user_preferences.json
+willbe-trends search-providers
 willbe-trends providers
 willbe-trends validate-preferences samples/user_preferences.json
 ```
 
 ## Future extensions
 
+- Populate `config/preferred_sources.yaml` with editorial and social sources
 - Web UI with preference quiz
 - Trend caching and refresh intervals
 - Image reference links per trend

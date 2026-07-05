@@ -30,6 +30,7 @@ def test_build_trend_report_parses_json():
     report = build_trend_report(
         category=TrendCategory.NAILS,
         mode="neutral",
+        research_time="July 2026",
         llm_response_text=SAMPLE_LLM_JSON,
         provider="openai",
         model="gpt-4o-mini",

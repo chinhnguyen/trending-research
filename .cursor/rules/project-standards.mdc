@@ -6,6 +6,7 @@ alwaysApply: true
 # Willbe Trends Standards
 
 - Keep research logic in `src/willbe_trends/research/`; LLM wiring in `src/willbe_trends/llm/`.
+- Web search lives in `src/willbe_trends/search/`; preferred sources in `config/preferred_sources.yaml`.
 - All new providers implement `LLMProvider` and register in `llm/registry.py`.
 - Model outputs must parse into Pydantic models — never return raw LLM text to callers.
 - Prompt changes belong next to the research module they serve; update `specs/` when behavior changes.

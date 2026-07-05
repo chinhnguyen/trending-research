@@ -1,0 +1,27 @@
+---
+description: Conventions for web search providers and preferred sources
+globs: src/willbe_trends/search/**
+alwaysApply: false
+---
+
+# Web Search Conventions
+
+## Adding a search provider
+
+1. Create `src/willbe_trends/search/<name>_provider.py`
+2. Subclass `SearchProvider` with async `search(query, max_results=...)`
+3. Register in `search/registry.py`
+4. Document env vars in `.env.example`
+
+## Preferred sources
+
+- Config lives in `config/preferred_sources.yaml` (override via `WILLBE_PREFERRED_SOURCES_PATH` or `--sources`)
+- Schema: `models/search.py` → `PreferredSourcesConfig`
+- Empty list is valid; site-specific queries activate when sources are added
+- Ranking boosts hits whose URL matches a configured `domain`
+
+## Research integration
+
+- Web gathering happens in `search/gather.py`
+- Research modules inject formatted snippets via `format_web_context()`
+- Never bypass Pydantic — attach `WebResearchBundle` to `TrendReport.web_research`

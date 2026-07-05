@@ -1,0 +1,1 @@
+"""Willbe Trends HTTP API."""

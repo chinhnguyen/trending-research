@@ -1,10 +1,12 @@
 from functools import lru_cache
+from pathlib import Path
 from typing import Literal
 
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 LLMProviderName = Literal["openai", "anthropic", "ollama"]
+SearchProviderName = Literal["duckduckgo", "tavily"]
 
 
 class Settings(BaseSettings):
@@ -18,6 +20,41 @@ class Settings(BaseSettings):
         default="openai",
         validation_alias="WILLBE_LLM_PROVIDER",
     )
+
+    willbe_web_search_enabled: bool = Field(
+        default=True,
+        validation_alias="WILLBE_WEB_SEARCH_ENABLED",
+    )
+    willbe_search_provider: SearchProviderName = Field(
+        default="duckduckgo",
+        validation_alias="WILLBE_SEARCH_PROVIDER",
+    )
+    willbe_preferred_sources_path: Path = Field(
+        default=Path("config/preferred_sources.yaml"),
+        validation_alias="WILLBE_PREFERRED_SOURCES_PATH",
+    )
+    willbe_prompts_path: Path = Field(
+        default=Path("config/prompts.yaml"),
+        validation_alias="WILLBE_PROMPTS_PATH",
+    )
+    willbe_search_max_results_per_query: int = Field(
+        default=4,
+        validation_alias="WILLBE_SEARCH_MAX_RESULTS_PER_QUERY",
+    )
+    willbe_search_max_citations: int = Field(
+        default=10,
+        validation_alias="WILLBE_SEARCH_MAX_CITATIONS",
+    )
+    willbe_image_search_enabled: bool = Field(
+        default=True,
+        validation_alias="WILLBE_IMAGE_SEARCH_ENABLED",
+    )
+    willbe_image_search_max_results: int = Field(
+        default=3,
+        validation_alias="WILLBE_IMAGE_SEARCH_MAX_RESULTS",
+    )
+
+    tavily_api_key: str | None = Field(default=None, validation_alias="TAVILY_API_KEY")
 
     openai_api_key: str | None = Field(default=None, validation_alias="OPENAI_API_KEY")
     openai_model: str = Field(default="gpt-4o-mini", validation_alias="OPENAI_MODEL")
@@ -35,6 +72,20 @@ class Settings(BaseSettings):
         validation_alias="OLLAMA_BASE_URL",
     )
     ollama_model: str = Field(default="llama3.2", validation_alias="OLLAMA_MODEL")
+
+    willbe_database_url: str = Field(
+        default="sqlite:///./data/willbe.db",
+        validation_alias="WILLBE_DATABASE_URL",
+    )
+    willbe_api_host: str = Field(default="127.0.0.1", validation_alias="WILLBE_API_HOST")
+    willbe_api_port: int = Field(default=8000, validation_alias="WILLBE_API_PORT")
+    willbe_cors_origins: str = Field(
+        default="http://localhost:5173,http://127.0.0.1:5173",
+        validation_alias="WILLBE_CORS_ORIGINS",
+    )
+
+    def cors_origin_list(self) -> list[str]:
+        return [origin.strip() for origin in self.willbe_cors_origins.split(",") if origin.strip()]
 
 
 @lru_cache

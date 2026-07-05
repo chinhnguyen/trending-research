@@ -1,0 +1,46 @@
+# Preferred sources for web-backed trend research.
+# Results from these domains are ranked higher and may trigger site-specific queries.
+version: 1
+sources:
+  - name: Allure
+    domain: allure.com
+    weight: 1.0
+    categories:
+      - nails
+    enabled: true
+  - name: Vogue
+    domain: vogue.com
+    weight: 0.95
+    categories:
+      - nails
+    enabled: true
+  - name: Marie Claire
+    domain: marieclaire.com
+    weight: 0.9
+    categories:
+      - nails
+    enabled: true
+  - name: Byrdie
+    domain: byrdie.com
+    weight: 0.9
+    categories:
+      - nails
+    enabled: true
+  - name: Who What Wear
+    domain: whowhatwear.com
+    weight: 0.85
+    categories:
+      - nails
+    enabled: true
+  - name: Refinery29
+    domain: refinery29.com
+    weight: 0.8
+    categories:
+      - nails
+    enabled: true
+  - name: Pinterest
+    domain: pinterest.com
+    weight: 0.7
+    categories:
+      - nails
+    enabled: true
