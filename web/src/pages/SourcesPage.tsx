@@ -178,7 +178,7 @@ export function SourcesPage() {
                 </div>
 
                 <div className="source-fields">
-                  <div className="field">
+                  <div className="source-field">
                     <label htmlFor={`source-name-${index}`}>Name</label>
                     <input
                       id={`source-name-${index}`}
@@ -186,8 +186,9 @@ export function SourcesPage() {
                       placeholder="Allure Beauty"
                       onChange={(event) => updateSource(index, { name: event.target.value })}
                     />
+                    <p className="field-hint">Editorial label shown in results.</p>
                   </div>
-                  <div className="field">
+                  <div className="source-field">
                     <label htmlFor={`source-domain-${index}`}>Domain</label>
                     <input
                       id={`source-domain-${index}`}
@@ -197,7 +198,7 @@ export function SourcesPage() {
                     />
                     <p className="field-hint">Without https:// — e.g. allure.com</p>
                   </div>
-                  <div className="field">
+                  <div className="source-field">
                     <label htmlFor={`source-weight-${index}`}>Weight</label>
                     <input
                       id={`source-weight-${index}`}
