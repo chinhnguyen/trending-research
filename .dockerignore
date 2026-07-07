@@ -1,0 +1,16 @@
+.git
+.cursor
+.venv
+venv
+__pycache__
+*.pyc
+.pytest_cache
+.mypy_cache
+.ruff_cache
+output
+data
+web/node_modules
+web/dist
+infra/node_modules
+infra/.pulumi
+infra/bin

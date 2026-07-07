@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 
 from contextlib import asynccontextmanager
@@ -11,7 +12,22 @@ from willbe_trends.api.routes import prompts, research, sources
 from willbe_trends.config import get_settings
 from willbe_trends.db.models import init_db
 
-WEB_DIST = Path(__file__).resolve().parents[3] / "web" / "dist"
+
+def resolve_web_dist() -> Path | None:
+    candidates: list[Path] = []
+    if env_path := os.environ.get("WILLBE_WEB_DIST"):
+        candidates.append(Path(env_path))
+    candidates.extend(
+        [
+            Path(__file__).resolve().parents[3] / "web" / "dist",
+            Path("/app/web/dist"),
+            Path.cwd() / "web" / "dist",
+        ]
+    )
+    for path in candidates:
+        if path.exists():
+            return path
+    return None
 
 
 @asynccontextmanager
@@ -38,19 +54,20 @@ def create_app() -> FastAPI:
     app.include_router(prompts.router, prefix="/api")
     app.include_router(sources.router, prefix="/api")
 
-    if WEB_DIST.exists():
-        assets_dir = WEB_DIST / "assets"
+    web_dist = resolve_web_dist()
+    if web_dist is not None:
+        assets_dir = web_dist / "assets"
         if assets_dir.exists():
             app.mount("/assets", StaticFiles(directory=assets_dir), name="assets")
 
         @app.get("/{full_path:path}")
         def spa_fallback(full_path: str):
             if full_path.startswith("api/"):
-                return FileResponse(WEB_DIST / "index.html", status_code=404)
-            candidate = WEB_DIST / full_path
+                return FileResponse(web_dist / "index.html", status_code=404)
+            candidate = web_dist / full_path
             if full_path and candidate.is_file():
                 return FileResponse(candidate)
-            return FileResponse(WEB_DIST / "index.html")
+            return FileResponse(web_dist / "index.html")
 
     return app
 

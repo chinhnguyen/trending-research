@@ -85,3 +85,15 @@ npm run dev
 The Vite dev server proxies `/api` to the FastAPI backend. Research runs are saved to SQLite (`data/willbe.db`) and shown in the UI.
 
 See `specs/database.md` for the persistence schema.
+
+## AWS deployment
+
+A Pulumi AWS deployment lives in `infra/`. It provisions:
+
+- ECR for the image
+- ECS Fargate for the app
+- ALB for public access
+- EFS for persistent SQLite and editable prompt/source config
+- CloudWatch Logs and Secrets Manager wiring
+
+See `infra/README.md` for setup and deploy steps.
