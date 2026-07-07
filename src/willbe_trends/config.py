@@ -83,9 +83,20 @@ class Settings(BaseSettings):
         default="http://localhost:5173,http://127.0.0.1:5173",
         validation_alias="WILLBE_CORS_ORIGINS",
     )
+    willbe_http_auth_user: str | None = Field(
+        default=None,
+        validation_alias="WILLBE_HTTP_AUTH_USER",
+    )
+    willbe_http_auth_password: str | None = Field(
+        default=None,
+        validation_alias="WILLBE_HTTP_AUTH_PASSWORD",
+    )
 
     def cors_origin_list(self) -> list[str]:
         return [origin.strip() for origin in self.willbe_cors_origins.split(",") if origin.strip()]
+
+    def http_auth_enabled(self) -> bool:
+        return bool(self.willbe_http_auth_user and self.willbe_http_auth_password)
 
 
 @lru_cache

@@ -27,6 +27,8 @@ const hostedZoneName = config.get("hostedZoneName") ?? "wilbi.fi";
 const openaiApiKey = config.getSecret("openaiApiKey");
 const anthropicApiKey = config.getSecret("anthropicApiKey");
 const tavilyApiKey = config.getSecret("tavilyApiKey");
+const httpAuthUser = config.get("httpAuthUser");
+const httpAuthPassword = config.getSecret("httpAuthPassword");
 
 const appPath = path.resolve(__dirname, "..");
 
@@ -276,11 +278,12 @@ function createSecret(name: string, value: pulumi.Input<string> | undefined) {
 const openaiSecret = createSecret("openaiApiKey", openaiApiKey);
 const anthropicSecret = createSecret("anthropicApiKey", anthropicApiKey);
 const tavilySecret = createSecret("tavilyApiKey", tavilyApiKey);
+const httpAuthSecret = createSecret("httpAuthPassword", httpAuthPassword);
 
 new aws.iam.RolePolicy(`${appName}-execution-secrets-policy`, {
     role: executionRole.id,
     policy: pulumi
-        .all([openaiSecret?.arn, anthropicSecret?.arn, tavilySecret?.arn])
+        .all([openaiSecret?.arn, anthropicSecret?.arn, tavilySecret?.arn, httpAuthSecret?.arn])
         .apply((arns) =>
             JSON.stringify({
                 Version: "2012-10-17",
@@ -325,8 +328,9 @@ const taskDefinition = new aws.ecs.TaskDefinition(`${appName}-task`, {
             openaiSecret?.arn,
             anthropicSecret?.arn,
             tavilySecret?.arn,
+            httpAuthSecret?.arn,
         ])
-        .apply(([imageName, logGroupName, openaiSecretArn, anthropicSecretArn, tavilySecretArn]) =>
+        .apply(([imageName, logGroupName, openaiSecretArn, anthropicSecretArn, tavilySecretArn, httpAuthSecretArn]) =>
             JSON.stringify([
                 {
                     name: "app",
@@ -350,6 +354,7 @@ const taskDefinition = new aws.ecs.TaskDefinition(`${appName}-task`, {
                         { name: "WILLBE_IMAGE_SEARCH_ENABLED", value: `${imageSearchEnabled}` },
                         { name: "WILLBE_CORS_ORIGINS", value: corsOrigins },
                         { name: "WILLBE_WEB_DIST", value: "/app/web/dist" },
+                        ...(httpAuthUser ? [{ name: "WILLBE_HTTP_AUTH_USER", value: httpAuthUser }] : []),
                         { name: "OPENAI_MODEL", value: openaiModel },
                         { name: "ANTHROPIC_MODEL", value: anthropicModel },
                     ],
@@ -375,6 +380,14 @@ const taskDefinition = new aws.ecs.TaskDefinition(`${appName}-task`, {
                                   {
                                       name: "TAVILY_API_KEY",
                                       valueFrom: tavilySecretArn,
+                                  },
+                              ]
+                            : []),
+                        ...(httpAuthSecretArn
+                            ? [
+                                  {
+                                      name: "WILLBE_HTTP_AUTH_PASSWORD",
+                                      valueFrom: httpAuthSecretArn,
                                   },
                               ]
                             : []),

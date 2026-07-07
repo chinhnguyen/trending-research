@@ -13,5 +13,8 @@ config:
   willbe-trends-aws:openaiApiKey:
     secure: v1:U8d/+Ark/ReNqNgd:W8eXqK+KIkOTxjElJ/Mids8ClnIHCFFp+Yqq7hGPdIjAHDXxiA8bALPCUHtD4rG8bo650lvSaEQ5hKzs91+ReY96xEnY8YowGaENozUo21JIGPMwC8wisBFqbinYsFAEJGMX8S8JTKUKbVPNJS5RH6PUEvvIQf2S/Yr4rHXhYkfq5yY6xa+X2w4I5cUAik6nFSjdNUxTb9miNPL+MGTDV6PgNtwrcpEduQTYguWeBDSl98xN
   aws:region: ap-southeast-1
+  willbe-trends-aws:httpAuthUser: willbe
+  willbe-trends-aws:httpAuthPassword:
+    secure: v1:BN6rc/0X9M4SxOff:b01mL/NNHJmPhLleDDkzENZ8N0ik7nkr44oNPTmNpkKEn7DHfqauHA==
 secretsprovider: awskms:///arn:aws:kms:ap-southeast-1:247377984913:key/c58ae16d-3e37-4a11-bb0e-eb3934939d4c?region=ap-southeast-1
 encryptedkey: AQICAHjZ2730jNXjn7UJ7xrzucqn6KVdxS61voaNNFopM4gOLQGgrZhVamNDH6ccJjSqb7hnAAAAfjB8BgkqhkiG9w0BBwagbzBtAgEAMGgGCSqGSIb3DQEHATAeBglghkgBZQMEAS4wEQQMJfk2MJfUmKuj+JnwAgEQgDvNQC7a4nL6aPMGGrpaywSX382jIPncpqHGgkCu6Aoh3FTyjL2al7Wd/9iBnTFFJk7Mez5ZUipkQrOwMg==

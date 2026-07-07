@@ -61,6 +61,8 @@ pulumi config set imageSearchEnabled true
 pulumi config set tavilyEnabled true
 pulumi config set --secret tavilyApiKey YOUR_TAVILY_KEY
 pulumi config set --secret anthropicApiKey YOUR_ANTHROPIC_KEY
+pulumi config set httpAuthUser willbe
+pulumi config set --secret httpAuthPassword YOUR_SITE_PASSWORD
 ```
 
 ## Deploy
@@ -77,3 +79,4 @@ Pulumi outputs the public ALB URL after deployment.
 - This deploy shape is best for the current codebase because it avoids rewriting the app for RDS/S3 hosting.
 - `ollama` is not a good fit for this AWS setup unless you add your own model-serving infrastructure.
 - The stack provisions an ACM certificate with DNS validation and creates a Route53 alias record for the configured domain.
+- Set `httpAuthUser` and `httpAuthPassword` to enable HTTP basic auth on the public site. `/api/health` stays open for load balancer checks.

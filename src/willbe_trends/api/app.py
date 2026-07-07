@@ -8,6 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
+from willbe_trends.api.basic_auth import BasicAuthMiddleware
 from willbe_trends.api.routes import prompts, research, sources
 from willbe_trends.config import get_settings
 from willbe_trends.db.models import init_db
@@ -50,6 +51,13 @@ def create_app() -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
+    if settings.http_auth_enabled():
+        app.add_middleware(
+            BasicAuthMiddleware,
+            username=settings.willbe_http_auth_user,
+            password=settings.willbe_http_auth_password,
+            exempt_paths=frozenset({"/api/health"}),
+        )
     app.include_router(research.router, prefix="/api")
     app.include_router(prompts.router, prefix="/api")
     app.include_router(sources.router, prefix="/api")

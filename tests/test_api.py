@@ -232,3 +232,29 @@ def test_health_endpoint(monkeypatch):
     assert response.status_code == 200
     assert response.json()["status"] == "ok"
     get_settings.cache_clear()
+
+
+def test_http_basic_auth_protects_site_but_not_health(monkeypatch):
+    import base64
+
+    monkeypatch.setenv("WILLBE_DATABASE_URL", "sqlite:///:memory:")
+    monkeypatch.setenv("WILLBE_HTTP_AUTH_USER", "willbe")
+    monkeypatch.setenv("WILLBE_HTTP_AUTH_PASSWORD", "secret-pass")
+    from willbe_trends.config import get_settings
+    import willbe_trends.db.models as db_models
+
+    get_settings.cache_clear()
+    db_models._engine = None
+    db_models._session_factory = None
+    client = TestClient(create_app())
+    unauthorized = client.get("/api/research")
+    assert unauthorized.status_code == 401
+    assert unauthorized.headers["www-authenticate"].startswith('Basic realm="Willbe Trends"')
+
+    health = client.get("/api/health")
+    assert health.status_code == 200
+
+    token = base64.b64encode(b"willbe:wrong-pass").decode("ascii")
+    wrong_password = client.get("/api/research", headers={"Authorization": f"Basic {token}"})
+    assert wrong_password.status_code == 401
+    get_settings.cache_clear()
