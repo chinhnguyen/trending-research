@@ -29,6 +29,65 @@ This keeps the in-app prompt/source editors working across task restarts.
 - Node.js 20+
 - Docker running locally
 
+## Deploy user
+
+Deployments use a dedicated IAM user instead of an admin/root profile:
+
+| Item | Value |
+|------|-------|
+| IAM user | `willbe-trends-pulumi-deploy` |
+| Local AWS CLI profile | `willbe-trends-deploy` |
+| AWS account | `247377984913` |
+| Region | `ap-southeast-1` |
+| Pulumi state bucket | `s3://willbe-trends-pulumi-state-247377984913-ap-southeast-1` |
+| Pulumi secrets KMS key | `arn:aws:kms:ap-southeast-1:247377984913:key/c58ae16d-3e37-4a11-bb0e-eb3934939d4c` |
+
+Use this profile for all infra commands:
+
+```bash
+export AWS_PROFILE=willbe-trends-deploy
+export AWS_REGION=ap-southeast-1
+
+cd infra
+pulumi login "s3://willbe-trends-pulumi-state-247377984913-ap-southeast-1"
+pulumi stack select dev
+pulumi up
+```
+
+Verify the profile:
+
+```bash
+aws --profile willbe-trends-deploy sts get-caller-identity
+```
+
+### Attached managed policies
+
+These AWS managed policies were attached so Pulumi can provision and update the stack:
+
+- `AmazonEC2FullAccess` — VPC, subnets, security groups
+- `AmazonECS_FullAccess` — ECS cluster, services, task definitions
+- `AmazonEC2ContainerRegistryFullAccess` — ECR repository and image push
+- `AmazonElasticFileSystemFullAccess` — EFS for persistent app data
+- `ElasticLoadBalancingFullAccess` — ALB, listeners, target groups
+- `CloudWatchLogsFullAccess` — container log groups
+- `SecretsManagerReadWrite` — OpenAI / site-auth secrets for ECS tasks
+- `IAMFullAccess` — ECS task and execution roles created by the stack
+- `AmazonRoute53FullAccess` — DNS validation and alias record for the custom domain
+- `AWSCertificateManagerFullAccess` — HTTPS certificate for the custom domain
+
+### Inline policies
+
+Two user-specific inline policies were added on top of the managed policies:
+
+- `WillbeTrendsPulumiStateBucketAccess` — read/write the Pulumi state bucket only
+- `WillbeTrendsPulumiSecretsKmsAccess` — encrypt/decrypt stack secrets with the Pulumi KMS key
+
+### Notes
+
+- Create and manage this user with an admin profile such as `willbe-chinhnguyen`; day-to-day deploys should use `willbe-trends-deploy`.
+- The managed policies are broad by design for Pulumi. Tightening them later would mean replacing `IAMFullAccess` and the `*FullAccess` policies with a custom least-privilege policy scoped to this stack.
+- Programmatic access keys for `willbe-trends-pulumi-deploy` live in your local `~/.aws/credentials` under the `willbe-trends-deploy` profile. Rotate them from IAM if needed.
+
 ## Install
 
 ```bash
