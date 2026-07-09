@@ -66,9 +66,28 @@ willbe-trends providers
 willbe-trends validate-preferences samples/user_preferences.json
 ```
 
+## Trend briefs (v0.2)
+
+Generate a ranked **trend brief** from a saved research report, then **content ideas** per trend.
+
+### API
+
+| Method | Path | Description |
+|--------|------|-------------|
+| POST | `/api/briefs/generate` | Body: `{ "report_id": "<uuid>" }` — scores trends and builds brief |
+| GET | `/api/briefs/latest` | Latest brief for the current user context |
+| GET | `/api/briefs/{id}` | Brief with ranked items, evidence, why-now |
+| POST | `/api/ideas/generate` | Body: `{ "brief_item_id": "<uuid>" }` — captions, hashtags, tie-ins |
+
+Models: `src/willbe_trends/models/briefs.py`. Service: `src/willbe_trends/briefs/service.py`.
+
+### Web UI
+
+From a report (`/reports/:id`), use **Generate brief** → `/briefs/generate/:reportId` → `/briefs/:id`. Per-item ideas: `/ideas/:briefItemId`.
+
 ## Future extensions
 
-- Social content generation (captions, hashtags) — see [market validation pilot](../projects/spa-market-validation/outcomes/next-steps.md)
+- Deeper social workflows (scheduling, carousel design) — see [market validation pilot](../projects/spa-market-validation/outcomes/next-steps.md)
 - Populate `config/preferred_sources.yaml` with editorial and social sources
 - Web UI with preference quiz
 - Trend caching and refresh intervals
@@ -93,7 +112,7 @@ Customer discovery for nail salon owners runs in [`projects/spa-market-validatio
 |----------|------|--------|
 | Weekly trend briefing for salon inspiration | Neutral | Hypothesis — validate H1, H2 |
 | Personalized picks matching salon style | Personalized | Hypothesis — validate H2 |
-| Trend → social post (caption + hashtags) | Proposed | Not built — validate H5 |
+| Trend → social post (caption + hashtags) | Brief + ideas API | Built v0.2 — validate H5 in pilot |
 | Citation-backed trust for salon owners | Neutral + web research | Hypothesis — demo reaction |
 
 ### Spa owner workflow (target)
@@ -111,11 +130,13 @@ flowchart LR
 
 See [`outcomes/pain-point-severity.md`](../projects/spa-market-validation/outcomes/pain-point-severity.md). Priority pains to confirm: time, inspiration, consistency, captions.
 
-### Social content generation (proposed)
+### Social content generation
 
-Not in v1 CLI/API. Concept tested in interviews via mock outputs in [`samples/market-validation/mock-social-post.json`](../samples/market-validation/mock-social-post.json).
+**v0.2 (web/API):** Brief items include caption drafts, hashtags, and product tie-ins via `/api/ideas/generate`. Owner still supplies photos.
 
-**Proposed MVP scope (pre-validation):**
+Interview mock reference: [`samples/market-validation/mock-social-post.json`](../samples/market-validation/mock-social-post.json).
+
+**MVP scope (pilot):**
 
 - Caption draft + hashtag set per trend
 - Owner always supplies nail photo

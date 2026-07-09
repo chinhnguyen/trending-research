@@ -1,4 +1,7 @@
 import type {
+  BriefGenerateRequest,
+  ContentIdeaGenerateRequest,
+  ContentIdeaOut,
   PersonalizedResearchRequest,
   PreferredSourcesConfig,
   PreferredSourcesConfigOut,
@@ -7,6 +10,7 @@ import type {
   ResearchDetail,
   ResearchListResponse,
   ResearchRunRequest,
+  TrendBrief,
 } from "./types";
 
 const BASE = "/api";
@@ -41,6 +45,28 @@ export function runNeutralResearch(body: ResearchRunRequest) {
 
 export function runPersonalizedResearch(body: PersonalizedResearchRequest) {
   return request<ResearchDetail>("/research/personalized", {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+}
+
+export function generateBrief(body: BriefGenerateRequest) {
+  return request<TrendBrief>("/briefs/generate", {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+}
+
+export function getBrief(id: string) {
+  return request<TrendBrief>(`/briefs/${id}`);
+}
+
+export function getLatestBrief(reportId: string) {
+  return request<TrendBrief>(`/briefs/latest?report_id=${encodeURIComponent(reportId)}`);
+}
+
+export function generateContentIdea(body: ContentIdeaGenerateRequest) {
+  return request<ContentIdeaOut>("/ideas/generate", {
     method: "POST",
     body: JSON.stringify(body),
   });

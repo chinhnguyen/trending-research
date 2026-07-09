@@ -58,6 +58,11 @@ export function ReportPage() {
           {report.web_research ? ` · web:${report.web_research.search_provider}` : ""}
         </p>
         <UsageStats usage={report.llm_usage} />
+        <div className="button-row">
+          <Link to={`/briefs/generate/${detail.id}`} className="button button-primary">
+            Generate brief
+          </Link>
+        </div>
       </section>
 
       <div className="grid-2">

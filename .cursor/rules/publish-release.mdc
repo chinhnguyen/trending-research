@@ -1,0 +1,45 @@
+---
+description: Enforce commit, tag, push, release notes, and deploy when publishing
+alwaysApply: false
+---
+
+# Publish & Release
+
+When the user asks to **publish**, **release**, or **deploy** (including "ship to prod" or "pulumi up after release"):
+
+## Required sequence
+
+1. **Verify** — Run `pytest` and `npm run build` in `web/`. Fix failures before continuing.
+2. **Version** — Bump `pyproject.toml` `version` (semver: patch for fixes, minor for features).
+3. **Release notes** — Create or update `releases/vX.Y.Z.md` from commits since the last tag (`git log <last-tag>..HEAD --oneline`).
+4. **Specs** — Update `specs/` when product behavior changed.
+5. **Commit** — Stage all release artifacts; one commit with a clear message (e.g. `Release v0.2.0: trend briefs`).
+6. **Tag** — Annotated tag matching the version: `git tag -a vX.Y.Z -m "vX.Y.Z"`.
+7. **Push** — `git push origin main` and `git push origin vX.Y.Z`.
+8. **Deploy** — From `infra/`: `export AWS_PROFILE=willbe-trends-deploy AWS_REGION=ap-southeast-1` then `pulumi up --yes`.
+
+Do not skip commit, tag, or push. Do not deploy from dirty or untagged working tree.
+
+## Release notes template (`releases/vX.Y.Z.md`)
+
+```markdown
+# vX.Y.Z — <title>
+
+**Date:** YYYY-MM-DD
+
+## Summary
+<1–2 sentences>
+
+## Added / Changed / Fixed
+- ...
+
+## API / UI
+- ...
+
+## Upgrade
+- Pull `main`, tag `vX.Y.Z`, or redeploy via Pulumi.
+```
+
+## Helper
+
+`scripts/publish.sh <version>` runs verify → notes reminder → commit/tag/push. Deploy remains manual (`pulumi up`) unless the user asks to run it.

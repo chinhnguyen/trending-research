@@ -2,6 +2,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from willbe_trends.api.app import create_app
+from willbe_trends.llm.base import LLMProvider, LLMResponse
 from willbe_trends.db.repository import report_to_schema, save_report
 from willbe_trends.models.search import WebCitation, WebResearchBundle
 from willbe_trends.models.trends import TrendCategory, TrendReport, TrendSignal
@@ -258,3 +259,109 @@ def test_http_basic_auth_protects_site_but_not_health(monkeypatch):
     wrong_password = client.get("/api/research", headers={"Authorization": f"Basic {token}"})
     assert wrong_password.status_code == 401
     get_settings.cache_clear()
+
+
+class StubBriefLLM(LLMProvider):
+    name = "stub"
+
+    async def complete(self, system: str, user: str) -> LLMResponse:
+        return LLMResponse(
+            content="""
+            {
+              "evidence_summary": "Backed by saved citations and the report summary.",
+              "why_now": "The trend is timely and visible across current inspiration sources.",
+              "caveats": null,
+              "angles": ["Showcase the finish", "Pair with a seasonal offer", "Use a close-up reel hook"],
+              "captions": [{"locale": "en", "caption": "Fresh trend, polished finish, salon-ready now.", "cta": "Book this week"}],
+              "hashtags": ["#nailtrend", "#saloninspo", "#booknow"],
+              "posting_tip": "Pair the caption with your latest close-up client set.",
+              "service_suggestion": "Signature chrome refresh",
+              "product_suggestion": "Cuticle oil add-on",
+              "rationale": "The trend naturally supports both a service spotlight and retail upsell."
+            }
+            """,
+            provider="stub",
+            model="stub-model",
+            usage=LLMUsageStats(prompt_tokens=100, completion_tokens=50, total_tokens=150, estimated_cost_usd=0),
+        )
+
+
+def test_brief_generation_and_idea_regeneration(tmp_path, monkeypatch):
+    db_path = tmp_path / "test.db"
+    monkeypatch.setenv("WILLBE_DATABASE_URL", f"sqlite:///{db_path}")
+
+    from willbe_trends.config import get_settings
+    import willbe_trends.db.models as db_models
+    import willbe_trends.api.routes.briefs as brief_routes
+
+    get_settings.cache_clear()
+    db_models._engine = None
+    db_models._session_factory = None
+    db_models.init_db()
+    session = db_models.SessionLocal()
+
+    report = TrendReport(
+        category=TrendCategory.NAILS,
+        mode="neutral",
+        research_time="July 2026",
+        summary="Chrome and sheer finishes are leading the month.",
+        trends=[
+            TrendSignal(
+                name="Soft Chrome",
+                description="Milky bases with reflective chrome finishes.",
+                popularity="rising",
+                colors=["milky white", "silver"],
+                techniques=["chrome powder"],
+                tags=["clean girl"],
+                confidence=0.86,
+                source_hint="Allure",
+            )
+        ],
+        generated_at="2026-07-04T12:00:00+00:00",
+        llm_provider="openai",
+        llm_model="gpt-4o-mini",
+        web_research=WebResearchBundle(
+            search_provider="duckduckgo",
+            queries=["chrome nails july 2026"],
+            citations=[
+                WebCitation(
+                    title="Chrome nails lead July",
+                    url="https://example.com/chrome",
+                    snippet="Chrome finishes and sheer milky bases keep appearing.",
+                    preferred=True,
+                    source_name="Example",
+                    query="chrome nails july 2026",
+                )
+            ],
+        ),
+    )
+    row = save_report(session, report, region="finland", web_search_enabled=True)
+    session.close()
+
+    monkeypatch.setattr(brief_routes, "create_provider", lambda provider=None, settings=None: StubBriefLLM())
+
+    client = TestClient(create_app())
+
+    created = client.post("/api/briefs/generate", json={"report_id": row.id})
+    assert created.status_code == 200
+    brief = created.json()
+    assert brief["report_id"] == row.id
+    assert len(brief["items"]) == 1
+    assert brief["items"][0]["content_idea"]["captions"][0]["locale"] == "en"
+
+    fetched = client.get(f"/api/briefs/{brief['id']}")
+    assert fetched.status_code == 200
+    assert fetched.json()["items"][0]["trend"]["name"] == "Soft Chrome"
+
+    latest = client.get(f"/api/briefs/latest?report_id={row.id}")
+    assert latest.status_code == 200
+    assert latest.json()["id"] == brief["id"]
+
+    idea = client.post("/api/ideas/generate", json={"brief_item_id": brief["items"][0]["id"]})
+    assert idea.status_code == 200
+    assert idea.json()["brief_item_id"] == brief["items"][0]["id"]
+    assert "hashtags" in idea.json()
+
+    get_settings.cache_clear()
+    db_models._engine = None
+    db_models._session_factory = None

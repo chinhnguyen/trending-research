@@ -9,7 +9,7 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
 from willbe_trends.api.basic_auth import BasicAuthMiddleware
-from willbe_trends.api.routes import prompts, research, sources
+from willbe_trends.api.routes import briefs, prompts, research, sources
 from willbe_trends.config import get_settings
 from willbe_trends.db.models import init_db
 
@@ -59,6 +59,7 @@ def create_app() -> FastAPI:
             exempt_paths=frozenset({"/api/health"}),
         )
     app.include_router(research.router, prefix="/api")
+    app.include_router(briefs.router, prefix="/api")
     app.include_router(prompts.router, prefix="/api")
     app.include_router(sources.router, prefix="/api")
 

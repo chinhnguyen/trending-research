@@ -4,12 +4,16 @@ from datetime import datetime
 from sqlalchemy.orm import Session, joinedload
 
 from willbe_trends.db.models import (
+    BriefItemRow,
+    ContentIdeaRow,
     ResearchReportRow,
+    ResearchBriefRow,
     TrendSignalRow,
     WebCitationRow,
     dumps_json,
     loads_json,
 )
+from willbe_trends.models.briefs import BriefCaption, BriefItem, ContentIdea, ProductServiceTieIn, TrendBrief
 from willbe_trends.models.preferences import UserPreferences
 from willbe_trends.models.search import WebCitation, WebResearchBundle
 from willbe_trends.models.trends import TrendCategory, TrendReport, TrendSignal
@@ -163,3 +167,201 @@ def get_report(session: Session, report_id: str) -> ResearchReportRow | None:
         .filter(ResearchReportRow.id == report_id)
         .one_or_none()
     )
+
+
+def _content_idea_to_schema(row: ContentIdeaRow | None) -> ContentIdea | None:
+    if row is None:
+        return None
+
+    return ContentIdea(
+        id=row.id,
+        angles=loads_json(row.angles_json, []),
+        captions=[BriefCaption.model_validate(item) for item in loads_json(row.captions_json, [])],
+        hashtags=loads_json(row.hashtags_json, []),
+        posting_tip=row.posting_tip,
+        product_mapping=(
+            ProductServiceTieIn(
+                service_suggestion=row.service_suggestion or "",
+                product_suggestion=row.product_suggestion or "",
+                rationale=row.rationale or "",
+            )
+            if row.service_suggestion and row.product_suggestion and row.rationale
+            else None
+        ),
+        generated_at=row.created_at,
+    )
+
+
+def brief_to_schema(row: ResearchBriefRow) -> TrendBrief:
+    usage = None
+    if row.llm_total_tokens or row.llm_estimated_cost_usd:
+        usage = LLMUsageStats(
+            prompt_tokens=row.llm_prompt_tokens,
+            completion_tokens=row.llm_completion_tokens,
+            total_tokens=row.llm_total_tokens,
+            estimated_cost_usd=row.llm_estimated_cost_usd,
+        )
+
+    return TrendBrief(
+        id=row.id,
+        report_id=row.report_id,
+        title=row.title,
+        summary=row.summary,
+        region=row.region,
+        research_time=row.research_time,
+        generated_at=row.created_at,
+        llm_provider=row.llm_provider,
+        llm_model=row.llm_model,
+        llm_usage=usage,
+        items=[
+            BriefItem(
+                id=item.id,
+                rank=item.rank,
+                score=item.score,
+                evidence_summary=item.evidence_summary,
+                why_now=item.why_now,
+                caveats=item.caveats,
+                trend=TrendSignal(
+                    name=item.trend_name,
+                    description=item.trend_description,
+                    popularity=item.trend_popularity,
+                    colors=loads_json(item.colors_json, []),
+                    techniques=loads_json(item.techniques_json, []),
+                    tags=loads_json(item.tags_json, []),
+                    confidence=item.confidence,
+                    source_hint=item.source_hint,
+                    image_url=item.image_url,
+                    image_source_url=item.image_source_url,
+                    image_alt=item.image_alt,
+                ),
+                content_idea=_content_idea_to_schema(item.ideas[0] if item.ideas else None),
+            )
+            for item in row.items
+        ],
+    )
+
+
+def save_brief(session: Session, brief: TrendBrief) -> ResearchBriefRow:
+    usage = brief.llm_usage or LLMUsageStats()
+    row = ResearchBriefRow(
+        id=brief.id,
+        report_id=brief.report_id,
+        title=brief.title,
+        summary=brief.summary,
+        region=brief.region,
+        research_time=brief.research_time,
+        llm_provider=brief.llm_provider,
+        llm_model=brief.llm_model,
+        llm_prompt_tokens=usage.prompt_tokens,
+        llm_completion_tokens=usage.completion_tokens,
+        llm_total_tokens=usage.total_tokens,
+        llm_estimated_cost_usd=usage.estimated_cost_usd,
+        created_at=brief.generated_at,
+    )
+    for item in brief.items:
+        item_row = BriefItemRow(
+            id=item.id,
+            rank=item.rank,
+            score=item.score,
+            trend_name=item.trend.name,
+            trend_description=item.trend.description,
+            trend_popularity=item.trend.popularity,
+            colors_json=dumps_json(item.trend.colors),
+            techniques_json=dumps_json(item.trend.techniques),
+            tags_json=dumps_json(item.trend.tags),
+            confidence=item.trend.confidence,
+            source_hint=item.trend.source_hint,
+            image_url=item.trend.image_url,
+            image_source_url=item.trend.image_source_url,
+            image_alt=item.trend.image_alt,
+            evidence_summary=item.evidence_summary,
+            why_now=item.why_now,
+            caveats=item.caveats,
+        )
+        if item.content_idea:
+            item_row.ideas.append(
+                ContentIdeaRow(
+                    id=item.content_idea.id,
+                    angles_json=dumps_json(item.content_idea.angles),
+                    captions_json=dumps_json([caption.model_dump() for caption in item.content_idea.captions]),
+                    hashtags_json=dumps_json(item.content_idea.hashtags),
+                    posting_tip=item.content_idea.posting_tip,
+                    service_suggestion=(
+                        item.content_idea.product_mapping.service_suggestion
+                        if item.content_idea.product_mapping
+                        else None
+                    ),
+                    product_suggestion=(
+                        item.content_idea.product_mapping.product_suggestion
+                        if item.content_idea.product_mapping
+                        else None
+                    ),
+                    rationale=(
+                        item.content_idea.product_mapping.rationale
+                        if item.content_idea.product_mapping
+                        else None
+                    ),
+                    created_at=item.content_idea.generated_at,
+                )
+            )
+        row.items.append(item_row)
+
+    session.add(row)
+    session.commit()
+    session.refresh(row)
+    return row
+
+
+def get_brief(session: Session, brief_id: str) -> ResearchBriefRow | None:
+    return (
+        session.query(ResearchBriefRow)
+        .options(joinedload(ResearchBriefRow.items).joinedload(BriefItemRow.ideas))
+        .filter(ResearchBriefRow.id == brief_id)
+        .one_or_none()
+    )
+
+
+def get_latest_brief_for_report(session: Session, report_id: str) -> ResearchBriefRow | None:
+    return (
+        session.query(ResearchBriefRow)
+        .options(joinedload(ResearchBriefRow.items).joinedload(BriefItemRow.ideas))
+        .filter(ResearchBriefRow.report_id == report_id)
+        .order_by(ResearchBriefRow.created_at.desc())
+        .first()
+    )
+
+
+def get_brief_item(session: Session, brief_item_id: str) -> BriefItemRow | None:
+    return (
+        session.query(BriefItemRow)
+        .options(joinedload(BriefItemRow.ideas), joinedload(BriefItemRow.brief))
+        .filter(BriefItemRow.id == brief_item_id)
+        .one_or_none()
+    )
+
+
+def replace_content_idea(
+    session: Session,
+    brief_item_id: str,
+    idea: ContentIdea,
+) -> ContentIdeaRow:
+    item = get_brief_item(session, brief_item_id)
+    if item is None:
+        raise ValueError("Brief item not found")
+
+    row = ContentIdeaRow(
+        id=idea.id,
+        brief_item_id=brief_item_id,
+        angles_json=dumps_json(idea.angles),
+        captions_json=dumps_json([caption.model_dump() for caption in idea.captions]),
+        hashtags_json=dumps_json(idea.hashtags),
+        posting_tip=idea.posting_tip,
+        service_suggestion=idea.product_mapping.service_suggestion if idea.product_mapping else None,
+        product_suggestion=idea.product_mapping.product_suggestion if idea.product_mapping else None,
+        rationale=idea.product_mapping.rationale if idea.product_mapping else None,
+        created_at=idea.generated_at,
+    )
+    session.add(row)
+    session.commit()
+    session.refresh(row)
+    return row

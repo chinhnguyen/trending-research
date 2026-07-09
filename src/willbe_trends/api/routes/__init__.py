@@ -1,3 +1,3 @@
-from willbe_trends.api.routes import research
+from willbe_trends.api.routes import briefs, research
 
-__all__ = ["research"]
+__all__ = ["briefs", "research"]

@@ -95,6 +95,53 @@ export interface UserPreferences {
   notes: string | null;
 }
 
+export interface BriefCaption {
+  locale: string;
+  caption: string;
+  cta: string | null;
+}
+
+export interface ProductServiceTieIn {
+  service_suggestion: string;
+  product_suggestion: string;
+  rationale: string;
+}
+
+export interface ContentIdea {
+  id: string;
+  angles: string[];
+  captions: BriefCaption[];
+  hashtags: string[];
+  posting_tip: string | null;
+  product_mapping: ProductServiceTieIn | null;
+  generated_at: string;
+}
+
+export interface BriefItem {
+  id: string;
+  rank: number;
+  score: number;
+  evidence_summary: string;
+  why_now: string;
+  caveats: string | null;
+  trend: TrendSignal;
+  content_idea: ContentIdea | null;
+}
+
+export interface TrendBrief {
+  id: string;
+  report_id: string;
+  title: string;
+  summary: string;
+  region: string;
+  research_time: string;
+  generated_at: string;
+  llm_provider: string;
+  llm_model: string;
+  llm_usage: LLMUsageStats | null;
+  items: BriefItem[];
+}
+
 export interface ResearchListItem {
   id: string;
   category: TrendCategory;
@@ -126,6 +173,21 @@ export interface ResearchDetail {
 export interface ResearchListResponse {
   items: ResearchListItem[];
   total: number;
+}
+
+export interface BriefGenerateRequest {
+  report_id: string;
+  provider?: string | null;
+  max_trends?: number;
+}
+
+export interface ContentIdeaGenerateRequest {
+  brief_item_id: string;
+  provider?: string | null;
+}
+
+export interface ContentIdeaOut extends ContentIdea {
+  brief_item_id: string;
 }
 
 export interface ResearchRunRequest {

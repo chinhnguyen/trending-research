@@ -3,6 +3,7 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
+from willbe_trends.models.briefs import ContentIdea, TrendBrief
 from willbe_trends.config import LLMProviderName, SearchProviderName
 from willbe_trends.models.category import TrendCategory
 from willbe_trends.models.preferences import UserPreferences
@@ -59,6 +60,25 @@ class ResearchDetail(BaseModel):
 class ResearchListResponse(BaseModel):
     items: list[ResearchListItem]
     total: int
+
+
+class BriefGenerateRequest(BaseModel):
+    report_id: str
+    provider: LLMProviderName | None = None
+    max_trends: int = Field(default=8, ge=1, le=12)
+
+
+class ContentIdeaGenerateRequest(BaseModel):
+    brief_item_id: str
+    provider: LLMProviderName | None = None
+
+
+class BriefOut(TrendBrief):
+    pass
+
+
+class ContentIdeaOut(ContentIdea):
+    brief_item_id: str
 
 
 class PromptConfigOut(BaseModel):
