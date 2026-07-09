@@ -14,7 +14,7 @@ Market validation program for **Willbe Trends** — AI nail trend research and p
 
 | Milestone | Status | Target week | Exit criteria |
 |-----------|--------|-------------|---------------|
-| [M1 — Foundation](milestones/M1-foundation/tasks.md) | Ready | Week 1 | Interview assets complete; demo rehearsed |
+| [M1 — Foundation](milestones/M1-foundation/tasks.md) | Not started | Week 1 | Interview assets complete; demo rehearsed |
 | [M2 — Recruitment](milestones/M2-recruitment/tasks.md) | Not started | Weeks 2–3 | ≥18 confirmed interviews |
 | [M3 — Interviews](milestones/M3-interviews/tasks.md) | Not started | Weeks 3–5 | ≥18 videos, transcripts, summaries |
 | [M4 — Synthesis](milestones/M4-synthesis/tasks.md) | Not started | Week 6 | Regional + cross-interview outcomes |
