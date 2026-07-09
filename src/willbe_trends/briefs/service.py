@@ -193,13 +193,24 @@ async def build_brief_item(
     return item, response
 
 
-async def generate_brief_from_report(
-    *,
-    row: ResearchReportRow,
-    llm: LLMProvider,
-    max_trends: int = 8,
-) -> TrendBrief:
-    citations = [
+def _trend_row_to_signal(trend) -> TrendSignal:
+    return TrendSignal(
+        name=trend.name,
+        description=trend.description,
+        popularity=trend.popularity,
+        colors=json.loads(trend.colors_json),
+        techniques=json.loads(trend.techniques_json),
+        tags=json.loads(trend.tags_json),
+        confidence=trend.confidence,
+        source_hint=trend.source_hint,
+        image_url=trend.image_url,
+        image_source_url=trend.image_source_url,
+        image_alt=trend.image_alt,
+    )
+
+
+def _report_citations(row: ResearchReportRow) -> list[WebCitation]:
+    return [
         WebCitation(
             title=citation.title,
             url=citation.url,
@@ -210,38 +221,71 @@ async def generate_brief_from_report(
         )
         for citation in row.citations
     ]
+
+
+def find_trend_in_report(row: ResearchReportRow, trend_name: str):
+    for trend in row.trends:
+        if trend.name == trend_name:
+            return trend
+    lowered = trend_name.lower()
+    for trend in row.trends:
+        if trend.name.lower() == lowered:
+            return trend
+    return None
+
+
+async def generate_brief_for_trend(
+    *,
+    row: ResearchReportRow,
+    llm: LLMProvider,
+    trend_name: str,
+) -> TrendBrief:
+    trend_row = find_trend_in_report(row, trend_name)
+    if trend_row is None:
+        raise ValueError(f"Trend not found in report: {trend_name}")
+
+    citations = _report_citations(row)
+    trend = _trend_row_to_signal(trend_row)
+    score = score_trend(trend, citations)
+    locales = _locale_candidates(row.region)
+    item, response = await build_brief_item(
+        llm=llm,
+        trend=trend,
+        report_summary=row.summary,
+        citations=citations,
+        region=row.region,
+        research_time=row.research_time or "",
+        rank=1,
+        score=score,
+        locales=locales,
+    )
+    return TrendBrief(
+        id=str(uuid.uuid4()),
+        report_id=row.id,
+        title=f"Post brief — {trend.name}",
+        summary=f"Social post ideas for {trend.name}, grounded in the saved {row.research_time or 'current'} research.",
+        region=row.region,
+        research_time=row.research_time or "",
+        generated_at=datetime.now(timezone.utc),
+        llm_provider=response.provider,
+        llm_model=response.model,
+        llm_usage=response.usage,
+        items=[item],
+    )
+
+
+async def generate_brief_from_report(
+    *,
+    row: ResearchReportRow,
+    llm: LLMProvider,
+    max_trends: int = 8,
+) -> TrendBrief:
+    citations = _report_citations(row)
     ranked_trends = sorted(
         (
             (
-                score_trend(
-                    TrendSignal(
-                        name=trend.name,
-                        description=trend.description,
-                        popularity=trend.popularity,
-                        colors=json.loads(trend.colors_json),
-                        techniques=json.loads(trend.techniques_json),
-                        tags=json.loads(trend.tags_json),
-                        confidence=trend.confidence,
-                        source_hint=trend.source_hint,
-                        image_url=trend.image_url,
-                        image_source_url=trend.image_source_url,
-                        image_alt=trend.image_alt,
-                    ),
-                    citations,
-                ),
-                TrendSignal(
-                    name=trend.name,
-                    description=trend.description,
-                    popularity=trend.popularity,
-                    colors=json.loads(trend.colors_json),
-                    techniques=json.loads(trend.techniques_json),
-                    tags=json.loads(trend.tags_json),
-                    confidence=trend.confidence,
-                    source_hint=trend.source_hint,
-                    image_url=trend.image_url,
-                    image_source_url=trend.image_source_url,
-                    image_alt=trend.image_alt,
-                ),
+                score_trend(_trend_row_to_signal(trend), citations),
+                _trend_row_to_signal(trend),
             )
             for trend in row.trends
         ),

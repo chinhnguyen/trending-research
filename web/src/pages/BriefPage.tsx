@@ -22,11 +22,13 @@ export function BriefPage() {
   if (error) return <div className="error panel panel-padding">{error}</div>;
   if (!brief) return null;
 
+  const singleTrend = brief.items.length === 1;
+
   return (
     <div className="page-stack">
       <section className="hero">
         <div className="badges">
-          <span className="badge badge-accent">brief</span>
+          <span className="badge badge-accent">{singleTrend ? "post brief" : "brief"}</span>
           <span className="badge">{brief.region}</span>
           <span className="badge">{brief.research_time || "current"}</span>
         </div>
@@ -41,9 +43,9 @@ export function BriefPage() {
       <section className="panel panel-padding">
         <div className="report-card-top" style={{ marginBottom: 18 }}>
           <h2 className="section-title" style={{ margin: 0 }}>
-            Ranked trends
+            {singleTrend ? "Post content" : "Ranked trends"}
           </h2>
-          <span className="meta">{brief.items.length} items</span>
+          {!singleTrend ? <span className="meta">{brief.items.length} items</span> : null}
         </div>
         <div className="brief-list">
           {brief.items.map((item) => (
@@ -51,7 +53,7 @@ export function BriefPage() {
               <div className="brief-card-top">
                 <div>
                   <div className="badges" style={{ marginBottom: 10 }}>
-                    <span className="badge badge-accent">#{item.rank}</span>
+                    {!singleTrend ? <span className="badge badge-accent">#{item.rank}</span> : null}
                     <span className="badge">{Math.round(item.score * 100)} brief score</span>
                     <span className="badge">{item.trend.popularity}</span>
                   </div>

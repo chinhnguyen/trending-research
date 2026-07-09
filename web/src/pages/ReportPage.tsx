@@ -58,19 +58,19 @@ export function ReportPage() {
           {report.web_research ? ` · web:${report.web_research.search_provider}` : ""}
         </p>
         <UsageStats usage={report.llm_usage} />
-        <div className="button-row">
-          <Link to={`/briefs/generate/${detail.id}`} className="button button-primary">
-            Generate brief
-          </Link>
-        </div>
       </section>
 
       <div className="grid-2">
         <section className="panel panel-padding">
-          <h2 className="section-title">Trends</h2>
+          <div className="report-card-top" style={{ marginBottom: 18 }}>
+            <h2 className="section-title" style={{ margin: 0 }}>
+              Trends
+            </h2>
+            <span className="meta">Pick a trend to create a post</span>
+          </div>
           <div className="trend-grid">
             {report.trends.map((trend) => (
-              <TrendCard key={trend.name} trend={trend} />
+              <TrendCard key={trend.name} trend={trend} reportId={detail.id} />
             ))}
           </div>
         </section>

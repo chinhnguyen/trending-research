@@ -1,6 +1,6 @@
 [project]
 name = "willbe-trends"
-version = "0.2.0"
+version = "0.2.1"
 description = "AI-powered trending research for beauty and nails"
 readme = "README.md"
 requires-python = ">=3.11"

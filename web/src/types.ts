@@ -177,6 +177,7 @@ export interface ResearchListResponse {
 
 export interface BriefGenerateRequest {
   report_id: string;
+  trend_name?: string | null;
   provider?: string | null;
   max_trends?: number;
 }

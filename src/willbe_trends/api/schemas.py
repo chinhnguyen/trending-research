@@ -64,6 +64,10 @@ class ResearchListResponse(BaseModel):
 
 class BriefGenerateRequest(BaseModel):
     report_id: str
+    trend_name: str | None = Field(
+        default=None,
+        description="When set, build a post brief for this trend only (primary salon workflow).",
+    )
     provider: LLMProviderName | None = None
     max_trends: int = Field(default=8, ge=1, le=12)
 

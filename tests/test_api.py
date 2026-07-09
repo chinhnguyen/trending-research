@@ -342,10 +342,14 @@ def test_brief_generation_and_idea_regeneration(tmp_path, monkeypatch):
 
     client = TestClient(create_app())
 
-    created = client.post("/api/briefs/generate", json={"report_id": row.id})
+    created = client.post(
+        "/api/briefs/generate",
+        json={"report_id": row.id, "trend_name": "Soft Chrome"},
+    )
     assert created.status_code == 200
     brief = created.json()
     assert brief["report_id"] == row.id
+    assert brief["title"] == "Post brief — Soft Chrome"
     assert len(brief["items"]) == 1
     assert brief["items"][0]["content_idea"]["captions"][0]["locale"] == "en"
 

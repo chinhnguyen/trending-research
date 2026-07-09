@@ -1,10 +1,17 @@
+import { Link } from "react-router-dom";
 import type { TrendSignal } from "../types";
 
 function popularityClass(value: string) {
   return value.toLowerCase().replace(/\s+/g, "-");
 }
 
-export function TrendCard({ trend }: { trend: TrendSignal }) {
+export function TrendCard({
+  trend,
+  reportId,
+}: {
+  trend: TrendSignal;
+  reportId?: string;
+}) {
   return (
     <article className="trend-card">
       {trend.image_url ? (
@@ -59,6 +66,16 @@ export function TrendCard({ trend }: { trend: TrendSignal }) {
           <p className="meta" style={{ marginTop: 12 }}>
             Source: {trend.source_hint}
           </p>
+        ) : null}
+        {reportId ? (
+          <div className="trend-card-actions">
+            <Link
+              to={`/briefs/generate/${reportId}/${encodeURIComponent(trend.name)}`}
+              className="button button-primary button-compact"
+            >
+              Create post
+            </Link>
+          </div>
         ) : null}
       </div>
     </article>

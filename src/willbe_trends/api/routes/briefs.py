@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 
 from willbe_trends.api.deps import get_db
 from willbe_trends.api.schemas import BriefGenerateRequest, BriefOut, ContentIdeaGenerateRequest, ContentIdeaOut
-from willbe_trends.briefs.service import generate_brief_from_report, regenerate_content_idea_for_item
+from willbe_trends.briefs.service import generate_brief_for_trend, generate_brief_from_report, regenerate_content_idea_for_item
 from willbe_trends.config import get_settings
 from willbe_trends.db.repository import (
     _content_idea_to_schema,
@@ -32,7 +32,13 @@ async def generate_brief(
 
     settings = get_settings()
     llm = create_provider(request.provider, settings=settings)
-    brief = await generate_brief_from_report(row=row, llm=llm, max_trends=request.max_trends)
+    if request.trend_name:
+        try:
+            brief = await generate_brief_for_trend(row=row, llm=llm, trend_name=request.trend_name)
+        except ValueError as exc:
+            raise HTTPException(status_code=404, detail=str(exc)) from exc
+    else:
+        brief = await generate_brief_from_report(row=row, llm=llm, max_trends=request.max_trends)
     saved = save_brief(db, brief)
     return brief_to_schema(saved)
 

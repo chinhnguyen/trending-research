@@ -15,7 +15,7 @@ export default function App() {
       <Route element={<Layout />}>
         <Route index element={<HomePage />} />
         <Route path="new" element={<NewResearchPage />} />
-        <Route path="briefs/generate/:reportId" element={<GenerateBriefPage />} />
+        <Route path="briefs/generate/:reportId/:trendName" element={<GenerateBriefPage />} />
         <Route path="briefs/:id" element={<BriefPage />} />
         <Route path="ideas/:briefItemId" element={<ContentIdeasPage />} />
         <Route path="settings/prompts" element={<PromptsPage />} />

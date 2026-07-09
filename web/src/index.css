@@ -266,6 +266,17 @@ textarea {
   padding: 18px 20px;
 }
 
+.trend-card-actions {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+
+.button-compact {
+  padding: 10px 14px;
+  font-size: 0.9rem;
+}
+
 .hero-gallery {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
