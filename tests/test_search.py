@@ -79,7 +79,7 @@ def test_save_and_reset_sources(tmp_path, monkeypatch):
 
     reset = reset_sources(path)
     assert reset.sources[0].domain == "allure.com"
-    assert len(reset.sources) == 7
+    assert len(reset.sources) == 8
     assert path.exists()
 
     get_settings.cache_clear()

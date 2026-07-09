@@ -6,7 +6,7 @@ from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 LLMProviderName = Literal["openai", "anthropic", "ollama"]
-SearchProviderName = Literal["duckduckgo", "tavily"]
+SearchProviderName = Literal["duckduckgo", "tavily", "google_trends"]
 
 
 class Settings(BaseSettings):
@@ -91,12 +91,31 @@ class Settings(BaseSettings):
         default=None,
         validation_alias="WILLBE_HTTP_AUTH_PASSWORD",
     )
+    google_trends_project_id: str | None = Field(
+        default=None,
+        validation_alias="GOOGLE_TRENDS_PROJECT_ID",
+    )
+    google_trends_credentials_path: Path | None = Field(
+        default=None,
+        validation_alias="GOOGLE_TRENDS_CREDENTIALS_PATH",
+    )
+    google_trends_token_path: Path = Field(
+        default=Path(".cache/google-trends-token.json"),
+        validation_alias="GOOGLE_TRENDS_TOKEN_PATH",
+    )
+    google_trends_geo_region: str = Field(
+        default="global",
+        validation_alias="GOOGLE_TRENDS_GEO_REGION",
+    )
 
     def cors_origin_list(self) -> list[str]:
         return [origin.strip() for origin in self.willbe_cors_origins.split(",") if origin.strip()]
 
     def http_auth_enabled(self) -> bool:
         return bool(self.willbe_http_auth_user and self.willbe_http_auth_password)
+
+    def google_trends_configured(self) -> bool:
+        return bool(self.google_trends_project_id and self.google_trends_credentials_path)
 
 
 @lru_cache

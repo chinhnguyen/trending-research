@@ -77,6 +77,7 @@ async def research_personalized_trends(
             max_results_per_query=resolved.willbe_search_max_results_per_query,
             max_total_citations=resolved.willbe_search_max_citations,
             settings=resolved,
+            region=region,
         )
 
     user_prompt = build_personalized_user_prompt(

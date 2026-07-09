@@ -44,3 +44,9 @@ sources:
     categories:
       - nails
     enabled: true
+  - name: Google Trends
+    domain: trends.google.com
+    weight: 0.95
+    categories:
+      - nails
+    enabled: true

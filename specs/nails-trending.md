@@ -12,8 +12,9 @@ Both modes use the same underlying trend schema but different prompts and rankin
 ## Web research
 
 - Enabled by default (`WILLBE_WEB_SEARCH_ENABLED=true`)
-- Search providers: `duckduckgo` (default), `tavily` (requires `TAVILY_API_KEY`)
-- Preferred sources: `config/preferred_sources.yaml` — list is empty for now; add domains later to boost ranking and trigger `site:` queries
+- Search providers: `duckduckgo` (default), `tavily` (requires `TAVILY_API_KEY`), `google_trends` (requires Google Trends API alpha access)
+- Google Trends is also listed in preferred sources (`trends.google.com`) and is fetched automatically when `GOOGLE_TRENDS_PROJECT_ID` and `GOOGLE_TRENDS_CREDENTIALS_PATH` are set
+- Preferred sources: `config/preferred_sources.yaml` — editorial domains plus Google Trends
 - Reports include `web_research` with queries, citations, and preferred-source flags
 - Each trend includes a reference `image_url` from image search (DuckDuckGo by default)
 - Disable images via `WILLBE_IMAGE_SEARCH_ENABLED=false`

@@ -1,4 +1,5 @@
 from pathlib import Path
+from urllib.parse import quote_plus
 
 from willbe_trends.config import Settings, get_settings
 from willbe_trends.models.preferences import UserPreferences
@@ -6,6 +7,12 @@ from willbe_trends.models.search import WebCitation, WebResearchBundle
 from willbe_trends.models.trends import TrendCategory
 from willbe_trends.search.base import RawSearchHit, SearchProvider
 from willbe_trends.search.registry import create_search_provider
+from willbe_trends.search.google_trends_client import (
+    GoogleTrendsClient,
+    query_to_trend_term,
+    region_to_geo_code,
+    summarize_trend_series,
+)
 from willbe_trends.search.sources import (
     active_sources_for_category,
     domain_from_url,
@@ -85,6 +92,7 @@ async def gather_web_research(
     max_results_per_query: int = 4,
     max_total_citations: int = 10,
     settings: Settings | None = None,
+    region: str = "global",
 ) -> WebResearchBundle:
     resolved_settings = settings or get_settings()
     provider = search or create_search_provider(settings=resolved_settings)
@@ -99,6 +107,21 @@ async def gather_web_research(
         hits = await provider.search(query, max_results=max_results_per_query)
         for hit in hits:
             if not hit.url or hit.url in seen_urls:
+                continue
+            seen_urls.add(hit.url)
+            collected.append((hit, query))
+
+    if (
+        resolved_settings.google_trends_configured()
+        and provider.name != "google_trends"
+    ):
+        trends_hits = await _google_trends_hits(
+            queries=queries,
+            settings=resolved_settings,
+            region=region,
+        )
+        for hit, query in trends_hits:
+            if hit.url in seen_urls:
                 continue
             seen_urls.add(hit.url)
             collected.append((hit, query))
@@ -126,6 +149,45 @@ async def gather_web_research(
         queries=queries,
         citations=citations,
     )
+
+
+async def _google_trends_hits(
+    *,
+    queries: list[str],
+    settings: Settings,
+    region: str,
+) -> list[tuple[RawSearchHit, str]]:
+    client = GoogleTrendsClient(
+        project_id=settings.google_trends_project_id,
+        credentials_path=settings.google_trends_credentials_path,
+        token_path=settings.google_trends_token_path,
+    )
+    geo_code = region_to_geo_code(region or settings.google_trends_geo_region)
+    hits: list[tuple[RawSearchHit, str]] = []
+    seen_terms: set[str] = set()
+
+    for query in queries[:3]:
+        term = query_to_trend_term(query)
+        key = term.lower()
+        if key in seen_terms:
+            continue
+        seen_terms.add(key)
+        series = await client.fetch_time_series(term, geo_code=geo_code)
+        explore_url = (
+            "https://trends.google.com/trends/explore?"
+            f"q={quote_plus(series.term)}&geo={series.geo_code}"
+        )
+        hits.append(
+            (
+                RawSearchHit(
+                    title=f"Google Trends: {series.term}",
+                    url=explore_url,
+                    snippet=summarize_trend_series(series),
+                ),
+                query,
+            )
+        )
+    return hits
 
 
 def query_domain(query: str) -> str | None:

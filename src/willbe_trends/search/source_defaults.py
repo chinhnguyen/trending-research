@@ -51,6 +51,13 @@ DEFAULT_PREFERRED_SOURCES: list[PreferredSource] = [
         categories=[TrendCategory.NAILS],
         enabled=True,
     ),
+    PreferredSource(
+        name="Google Trends",
+        domain="trends.google.com",
+        weight=0.95,
+        categories=[TrendCategory.NAILS],
+        enabled=True,
+    ),
 ]
 
 

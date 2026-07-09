@@ -120,6 +120,7 @@ async def _maybe_gather_web_context(
         max_results_per_query=resolved.willbe_search_max_results_per_query,
         max_total_citations=resolved.willbe_search_max_citations,
         settings=resolved,
+        region=region,
     )
 
 

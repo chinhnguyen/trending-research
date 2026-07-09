@@ -84,7 +84,28 @@ npm run dev
 
 The Vite dev server proxies `/api` to the FastAPI backend. Research runs are saved to SQLite (`data/willbe.db`) and shown in the UI.
 
-See `specs/database.md` for the persistence schema.
+### Google Trends (optional)
+
+Google Trends is included in the preferred sources list and can call the official **Google Trends API (alpha)** during research. There is no simple API key — access uses OAuth 2.0:
+
+1. Apply for alpha access: https://developers.google.com/search/apis/trends
+2. In [Google Cloud Console](https://console.cloud.google.com/), enable **Google Trends API (alpha)** on a project with billing enabled
+3. Create credentials under **APIs & Services → Credentials**:
+   - **Desktop OAuth client** for local dev (save JSON as e.g. `client.json`)
+   - **Service account** for servers (download JSON key)
+4. Add to `.env`:
+
+```bash
+GOOGLE_TRENDS_PROJECT_ID=your-gcp-project-id
+GOOGLE_TRENDS_CREDENTIALS_PATH=/path/to/credentials.json
+GOOGLE_TRENDS_GEO_REGION=global
+```
+
+On first run with a desktop OAuth client, your browser opens for consent and the token is cached at `.cache/google-trends-token.json`.
+
+When these variables are set, research runs append live Google Trends citations alongside DuckDuckGo/Tavily. Set `WILLBE_SEARCH_PROVIDER=google_trends` to use Trends only.
+
+See `specs/nails-trending.md` for the persistence schema.
 
 ## AWS deployment
 

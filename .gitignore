@@ -12,6 +12,7 @@ build/
 .DS_Store
 output/
 data/
+.cache/
 web/node_modules/
 web/dist/
 infra/node_modules/

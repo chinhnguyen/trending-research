@@ -1,10 +1,12 @@
 from willbe_trends.config import SearchProviderName, Settings, get_settings
 from willbe_trends.search.base import SearchProvider
 from willbe_trends.search.duckduckgo_provider import DuckDuckGoProvider
+from willbe_trends.search.google_trends_provider import GoogleTrendsProvider
 from willbe_trends.search.tavily_provider import TavilyProvider
 
 PROVIDER_FACTORIES: dict[str, type[SearchProvider]] = {
     DuckDuckGoProvider.name: DuckDuckGoProvider,
+    GoogleTrendsProvider.name: GoogleTrendsProvider,
     TavilyProvider.name: TavilyProvider,
 }
 
