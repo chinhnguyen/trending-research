@@ -23,7 +23,7 @@ Market validation program for **Willbe Trends** — AI nail trend research and p
 **Program start:** _TBD_  
 **Last updated:** 2026-07-09
 
-## Recruitment tracker
+## Recruitment tracker {#recruitment-tracker}
 
 Target: **6 Vietnam · 6 Finland · 6 International** (mix of solo artists and small salons).
 
@@ -50,7 +50,7 @@ Target: **6 Vietnam · 6 Finland · 6 International** (mix of solo artists and s
 
 **Status values:** Not contacted → Screener sent → Scheduled → Completed → Summary done
 
-## Incentive policy
+## Incentive policy {#incentive-policy}
 
 | Region | Incentive | Notes |
 |--------|-----------|-------|

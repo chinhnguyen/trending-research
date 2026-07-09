@@ -6,12 +6,12 @@
 
 | ID | Task | Owner | Status | Outcome |
 |----|------|-------|--------|---------|
-| M4.1 | Fill comparison matrix | | Not started | [outcomes/cross-interview-comparison.md](../../outcomes/cross-interview-comparison.md) |
+| M4.1 | Fill comparison matrix | | Not started | [cross-interview-comparison.md](../../outcomes/cross-interview-comparison.md) from [comparison-matrix-template.md](../../interviews/templates/comparison-matrix-template.md) |
 | M4.2 | Regional breakdown (VN vs FI vs INT) | | Not started | [outcomes/market-fit-by-region.md](../../outcomes/market-fit-by-region.md) |
 | M4.3 | Rank pain points | | Not started | [outcomes/pain-point-severity.md](../../outcomes/pain-point-severity.md) |
 | M4.4 | Pricing analysis (Van Westendorp) | | Not started | [outcomes/pricing-summary.md](../../outcomes/pricing-summary.md) |
 | M4.5 | Content preference analysis | | Not started | [outcomes/content-preference-summary.md](../../outcomes/content-preference-summary.md) |
-| M4.6 | Clip 3–5 highlight reels (30–60s) | | Not started | Links in [recordings/README.md](../../interviews/recordings/README.md) |
+| M4.6 | Clip 3–5 highlight reels (30–60s) | | Not started | [recordings/README.md#highlight-reels-m46](../../interviews/recordings/README.md#highlight-reels-m46) |
 
 ## Synthesis workflow
 

@@ -6,12 +6,12 @@
 
 | ID | Task | Owner | Status | Outcome |
 |----|------|-------|--------|---------|
-| M3.1 | Run 45–60 min interviews per guide | | Not started | Video + transcript per participant |
-| M3.2 | Demo neutral + personalized trend research | | Not started | Demo reaction notes in post-interview form |
-| M3.3 | Concept-test social content (mock posts) | | Not started | Content preference scores |
-| M3.4 | Run Van Westendorp pricing questions | | Not started | WTP raw data per person |
-| M3.5 | Complete interview summary within 24h | | Not started | 18 summary files in `transcripts/` |
-| M3.6 | Mid-point check after 9 interviews | | Not started | Addendum below if questions adjusted |
+| M3.1 | Run 45–60 min interviews per guide | | Not started | [execution-kit.md](../../interviews/execution-kit.md); artifacts in [transcripts/](../../interviews/transcripts/) |
+| M3.2 | Demo neutral + personalized trend research | | Not started | [demo-script.md](../../specs/demo-script.md); notes in [post-interview.md](../../interviews/questionnaires/post-interview.md) |
+| M3.3 | Concept-test social content (mock posts) | | Not started | [mock-social-post.json](../../../../samples/market-validation/mock-social-post.json) |
+| M3.4 | Run Van Westendorp pricing questions | | Not started | [pricing-van-westendorp.md](../../interviews/questionnaires/pricing-van-westendorp.md) |
+| M3.5 | Complete interview summary within 24h | | Not started | [interview-summary-template.md](../../interviews/templates/interview-summary-template.md) → `transcripts/` |
+| M3.6 | Mid-point check after 9 interviews | | Not started | Addendum in [M3-interviews/tasks.md](tasks.md#mid-point-review-addendum) |
 
 ## Per-interview checklist
 
@@ -48,7 +48,7 @@
 | INT-05 | | | | | |
 | INT-06 | | | | | |
 
-## Mid-point review addendum
+## Mid-point review addendum {#mid-point-review-addendum}
 
 _Fill after interview #9. Note any question changes, emerging themes, or recruitment gaps._
 

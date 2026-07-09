@@ -7,9 +7,9 @@
 | ID | Task | Owner | Status | Outcome |
 |----|------|-------|--------|---------|
 | M2.1 | Define screener criteria | | Not started | [interviews/guides/screener.md](../../interviews/guides/screener.md) |
-| M2.2 | Build target panel (6 VN, 6 FI, 6 INT) | | Not started | Tracker in [README.md](../../README.md) |
-| M2.3 | Outreach via channels (FB, IG, networks) | | Not started | ≥18 scheduled interviews |
-| M2.4 | Document and offer incentives | | Not started | Incentive policy in [README.md](../../README.md) |
+| M2.2 | Build target panel (6 VN, 6 FI, 6 INT) | | Not started | Tracker in [README.md#recruitment-tracker](../../README.md#recruitment-tracker) |
+| M2.3 | Outreach via channels (FB, IG, networks) | | Not started | [recruitment-playbook.md](../../specs/recruitment-playbook.md) |
+| M2.4 | Document and offer incentives | | Not started | [Incentive policy](../../README.md#incentive-policy) in [README.md](../../README.md) |
 | M2.5 | Pre-send consent + pre-interview form | | Not started | Completed [pre-interview.md](../../interviews/questionnaires/pre-interview.md) per participant |
 
 ## Outreach message template

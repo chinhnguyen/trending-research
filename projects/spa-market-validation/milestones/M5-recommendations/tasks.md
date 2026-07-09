@@ -6,10 +6,10 @@
 
 | ID | Task | Owner | Status | Outcome |
 |----|------|-------|--------|---------|
-| M5.1 | Write conclusions (validate/refute H1–H5) | | Not started | [outcomes/conclusions.md](../../outcomes/conclusions.md) |
-| M5.2 | Write next-steps (90-day roadmap) | | Not started | [outcomes/next-steps.md](../../outcomes/next-steps.md) |
-| M5.3 | Update product spec with validated use cases | | Not started | [specs/nails-trending.md](../../../../specs/nails-trending.md) |
-| M5.4 | Optional: landing page copy + pilot CTA | | Not started | One-pager in `outcomes/` |
+| M5.1 | Write conclusions (validate/refute H1–H5) | | Not started | [conclusions.md](../../outcomes/conclusions.md); evidence in [hypotheses.md](../../specs/hypotheses.md) |
+| M5.2 | Write next-steps (90-day roadmap) | | Not started | [next-steps.md](../../outcomes/next-steps.md) |
+| M5.3 | Update product spec with validated use cases | | Not started | [nails-trending.md](../../../../specs/nails-trending.md#market-validation-spa-owners) |
+| M5.4 | Optional: landing page copy + pilot CTA | | Not started | [pilot-landing-copy.md](../../outcomes/pilot-landing-copy.md) |
 
 ## Decision framework
 

@@ -31,7 +31,7 @@ Every recording requires verbal consent at the start of the call:
 
 Record consent confirmation in the transcript.
 
-## Highlight reels (M4.6)
+## Highlight reels (M4.6) {#highlight-reels-m46}
 
 After synthesis, clip 3–5 segments (30–60 seconds each) for internal review or anonymized sharing.
 

@@ -83,7 +83,7 @@ willbe-trends validate-preferences samples/user_preferences.json
 - Personalized picks must honor avoided colors and stated constraints
 - Fail loudly on invalid JSON or missing API keys
 
-## Market validation (spa owners)
+## Market validation (spa owners) {#market-validation-spa-owners}
 
 Customer discovery for nail salon owners runs in [`projects/spa-market-validation/`](../projects/spa-market-validation/README.md). Target geographies: Vietnam, Finland, international.
 

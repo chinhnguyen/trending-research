@@ -13,8 +13,9 @@
 | M1.5 | Create mock social post samples | | Not started | [samples/market-validation/mock-social-post.json](../../../../samples/market-validation/mock-social-post.json) |
 | M1.6 | Draft interview guides + questionnaires (EN/VI/FI) | | Not started | [interviews/guides/](../../interviews/guides/), [interviews/questionnaires/](../../interviews/questionnaires/) |
 | M1.7 | Set up recording workflow | | Not started | [interviews/recordings/README.md](../../interviews/recordings/README.md) |
+| M1.8 | Complete pre-demo checklist | | Not started | [M1-foundation/tasks.md#pre-demo-checklist](tasks.md#pre-demo-checklist) |
 
-## Pre-demo checklist
+## Pre-demo checklist {#pre-demo-checklist}
 
 Before first interview, confirm:
 
