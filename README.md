@@ -42,9 +42,14 @@ willbe-trends personalized nails --provider ollama
 willbe-trends providers
 ```
 
+## Market validation
+
+Customer discovery for nail salon owners (Vietnam, Finland, international) lives in [`projects/spa-market-validation/`](projects/spa-market-validation/README.md) — interview guides, recruitment tracker, and synthesis outcomes.
+
 ## Project layout
 
 ```
+projects/               Market validation programs and task tracking
 specs/                  Product and research specs
 samples/                Sample user preference inputs
 src/willbe_trends/      Python package

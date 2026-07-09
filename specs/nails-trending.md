@@ -68,6 +68,7 @@ willbe-trends validate-preferences samples/user_preferences.json
 
 ## Future extensions
 
+- Social content generation (captions, hashtags) — see [market validation pilot](../projects/spa-market-validation/outcomes/next-steps.md)
 - Populate `config/preferred_sources.yaml` with editorial and social sources
 - Web UI with preference quiz
 - Trend caching and refresh intervals
@@ -81,3 +82,56 @@ willbe-trends validate-preferences samples/user_preferences.json
 - Trends should feel current and specific (not "try red nails")
 - Personalized picks must honor avoided colors and stated constraints
 - Fail loudly on invalid JSON or missing API keys
+
+## Market validation (spa owners)
+
+Customer discovery for nail salon owners runs in [`projects/spa-market-validation/`](../projects/spa-market-validation/README.md). Target geographies: Vietnam, Finland, international.
+
+### Validated use cases (update after interviews)
+
+| Use case | Mode | Status |
+|----------|------|--------|
+| Weekly trend briefing for salon inspiration | Neutral | Hypothesis — validate H1, H2 |
+| Personalized picks matching salon style | Personalized | Hypothesis — validate H2 |
+| Trend → social post (caption + hashtags) | Proposed | Not built — validate H5 |
+| Citation-backed trust for salon owners | Neutral + web research | Hypothesis — demo reaction |
+
+### Spa owner workflow (target)
+
+```mermaid
+flowchart LR
+    prefs[Salon style prefs] --> research[Trend research]
+    research --> digest[Weekly digest]
+    digest --> caption[Caption draft]
+    caption --> owner[Owner photo + edit]
+    owner --> post[Post to IG/FB/TikTok]
+```
+
+### Pain points under validation
+
+See [`outcomes/pain-point-severity.md`](../projects/spa-market-validation/outcomes/pain-point-severity.md). Priority pains to confirm: time, inspiration, consistency, captions.
+
+### Social content generation (proposed)
+
+Not in v1 CLI/API. Concept tested in interviews via mock outputs in [`samples/market-validation/mock-social-post.json`](../samples/market-validation/mock-social-post.json).
+
+**Proposed MVP scope (pre-validation):**
+
+- Caption draft + hashtag set per trend
+- Owner always supplies nail photo
+- Vietnamese localization if VN is beachhead
+- Defer: AI mood boards, auto-scheduling, carousel design
+
+Spec detail: [`projects/spa-market-validation/specs/content-generation-concepts.md`](../projects/spa-market-validation/specs/content-generation-concepts.md)
+
+### Pilot plan (draft)
+
+| Element | Detail |
+|---------|--------|
+| Cohort | 10–15 nail salon owners from validation waitlist |
+| Duration | 30 days free |
+| Features | Neutral + personalized trends; caption drafts when built |
+| Success | ≥70% weekly active; ≥50% use captions; NPS ≥30 |
+| Pricing | Regional tiers per [`pricing-summary.md`](../projects/spa-market-validation/outcomes/pricing-summary.md) |
+
+Full roadmap: [`projects/spa-market-validation/outcomes/next-steps.md`](../projects/spa-market-validation/outcomes/next-steps.md)
