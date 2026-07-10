@@ -2,7 +2,7 @@ from datetime import datetime
 
 from pydantic import BaseModel, Field
 
-from willbe_trends.models.social import SocialPlatform
+from willbe_trends.models.social import PostFormat, SocialPlatform
 from willbe_trends.models.trends import TrendSignal
 from willbe_trends.models.usage import LLMUsageStats
 
@@ -72,9 +72,26 @@ class VideoRecommendation(BaseModel):
     scenes: list[VideoScene] = Field(default_factory=list)
 
 
+class ShortVideoRecommendation(BaseModel):
+    label: str
+    aspect_ratio: str = Field(default="9:16", description="9:16 for Reels and TikTok")
+    prompt: str
+    duration_seconds: int = Field(default=8, ge=4, le=20)
+    hook: str | None = None
+    caption: str | None = None
+    hashtags: list[str] = Field(default_factory=list)
+    scenes: list[VideoScene] = Field(default_factory=list)
+    generated_url: str | None = None
+    generation_status: str = Field(default="prompt_only")
+    generation_provider: str | None = None
+    generation_model: str | None = None
+    generation_error: str | None = None
+
+
 class ContentIdea(BaseModel):
     id: str
     platform: SocialPlatform = "instagram"
+    post_format: PostFormat = "image"
     angles: list[str] = Field(default_factory=list)
     captions: list[BriefCaption] = Field(default_factory=list)
     hashtags: list[str] = Field(default_factory=list)
@@ -82,6 +99,7 @@ class ContentIdea(BaseModel):
     product_mapping: ProductServiceTieIn | None = None
     platform_review: PlatformPostReview | None = None
     image_recommendations: list[ImageRecommendation] = Field(default_factory=list)
+    video_recommendations: list[ShortVideoRecommendation] = Field(default_factory=list)
     video_recommendation: VideoRecommendation | None = None
     generated_at: datetime
 

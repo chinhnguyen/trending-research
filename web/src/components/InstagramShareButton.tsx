@@ -4,26 +4,29 @@ import type { PostOption } from "./PostOptionsList";
 
 type ButtonState = "idle" | "sharing" | "done" | "error";
 
-function shareHint(result: InstagramShareResult | null, hasImage: boolean): string | null {
+function shareHint(result: InstagramShareResult | null, hasMedia: boolean, isVideo: boolean): string | null {
   if (!result) return null;
   if (result.mode === "native_share") {
     return "Shared to your device. Pick Instagram and finish the post there.";
   }
-  if (hasImage && result.imageDownloaded) {
-    return "Caption copied and image saved. In Instagram, upload the image and paste your caption.";
+  if (hasMedia && result.mediaDownloaded) {
+    return isVideo
+      ? "Caption copied and video saved. In Instagram, upload the video and paste your caption."
+      : "Caption copied and image saved. In Instagram, upload the image and paste your caption.";
   }
-  if (hasImage) {
-    return "Caption copied. In Instagram, upload your image and paste the caption.";
+  if (hasMedia) {
+    return "Caption copied. In Instagram, upload your media and paste the caption.";
   }
   return "Caption copied. Paste it into your new Instagram post.";
 }
 
-export function InstagramShareButton({ option }: { option: PostOption }) {
+export function InstagramShareButton({ option, disabled }: { option: PostOption; disabled?: boolean }) {
   const [state, setState] = useState<ButtonState>("idle");
   const [result, setResult] = useState<InstagramShareResult | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const hasImage = Boolean(option.imageUrl);
-  const hint = shareHint(result, hasImage);
+  const mediaUrl = option.videoUrl ?? option.imageUrl;
+  const isVideo = Boolean(option.videoUrl);
+  const hint = shareHint(result, Boolean(mediaUrl), isVideo);
 
   async function handleShare() {
     setState("sharing");
@@ -34,8 +37,8 @@ export function InstagramShareButton({ option }: { option: PostOption }) {
         hook: option.hook,
         caption: option.caption,
         hashtags: option.hashtags,
-        imageUrl: option.imageUrl,
-        filename: `${option.id}.png`,
+        mediaUrl,
+        filename: `${option.id}.${isVideo ? "mp4" : "png"}`,
       });
       setResult(shareResult);
       setState("done");
@@ -62,10 +65,10 @@ export function InstagramShareButton({ option }: { option: PostOption }) {
         type="button"
         className="button button-primary button-compact"
         onClick={handleShare}
-        disabled={state === "sharing"}
+        disabled={disabled || state === "sharing"}
         title={
-          hasImage
-            ? "Copy caption, save the image, and open Instagram"
+          mediaUrl
+            ? "Copy caption, save the media, and open Instagram"
             : "Copy caption and open Instagram"
         }
       >

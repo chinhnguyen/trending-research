@@ -108,6 +108,7 @@ export interface ProductServiceTieIn {
 }
 
 export type SocialPlatform = "instagram" | "tiktok";
+export type PostFormat = "image" | "video";
 
 export interface PlatformPostReview {
   platform: SocialPlatform;
@@ -156,9 +157,26 @@ export interface VideoRecommendation {
   scenes: VideoScene[];
 }
 
+export interface ShortVideoRecommendation {
+  label: string;
+  aspect_ratio: string;
+  prompt: string;
+  duration_seconds: number;
+  hook: string | null;
+  caption: string | null;
+  hashtags: string[];
+  scenes: VideoScene[];
+  generated_url: string | null;
+  generation_status: string;
+  generation_provider: string | null;
+  generation_model: string | null;
+  generation_error: string | null;
+}
+
 export interface ContentIdea {
   id: string;
   platform: SocialPlatform;
+  post_format: PostFormat;
   angles: string[];
   captions: BriefCaption[];
   hashtags: string[];
@@ -166,6 +184,7 @@ export interface ContentIdea {
   product_mapping: ProductServiceTieIn | null;
   platform_review: PlatformPostReview | null;
   image_recommendations: ImageRecommendation[];
+  video_recommendations: ShortVideoRecommendation[];
   video_recommendation: VideoRecommendation | null;
   generated_at: string;
 }
@@ -193,6 +212,23 @@ export interface TrendBrief {
   llm_model: string;
   llm_usage: LLMUsageStats | null;
   items: BriefItem[];
+  active_media_jobs?: MediaJob[];
+}
+
+export type MediaJobStatus = "queued" | "generating_media" | "completed" | "failed" | "skipped";
+
+export interface MediaJob {
+  id: string;
+  status: MediaJobStatus;
+  stage: string;
+  progress_percent: number;
+  error_message: string | null;
+  brief_id: string | null;
+  brief_item_id: string | null;
+  content_idea_id: string | null;
+  created_at: string;
+  updated_at: string;
+  completed_at: string | null;
 }
 
 export interface ResearchListItem {
@@ -232,6 +268,7 @@ export interface BriefGenerateRequest {
   report_id: string;
   trend_name?: string | null;
   platform?: SocialPlatform;
+  post_format?: PostFormat;
   provider?: string | null;
   max_trends?: number;
 }
@@ -239,11 +276,13 @@ export interface BriefGenerateRequest {
 export interface ContentIdeaGenerateRequest {
   brief_item_id: string;
   platform?: SocialPlatform;
+  post_format?: PostFormat;
   provider?: string | null;
 }
 
 export interface ContentIdeaOut extends ContentIdea {
   brief_item_id: string;
+  active_media_job?: MediaJob | null;
 }
 
 export interface ResearchRunRequest {

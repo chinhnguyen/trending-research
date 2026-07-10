@@ -1,6 +1,6 @@
 from willbe_trends.models.social import SocialPlatform
 
-_PLATFORM_JSON_SHAPE = """
+_IMAGE_JSON_SHAPE = """
   "platform_review": {
     "content_format": "instagram_reel | instagram_feed | tiktok_video",
     "strengths": ["what works for this platform"],
@@ -22,50 +22,102 @@ _PLATFORM_JSON_SHAPE = """
       "hashtags": ["#tag"]
     }
   ],
+  "video_recommendations": [],
+  "video_recommendation": null"""
+
+_VIDEO_JSON_SHAPE = """
+  "platform_review": {
+    "content_format": "instagram_reel | tiktok_video",
+    "strengths": ["what works for this platform"],
+    "improvements": ["what to tweak before posting"],
+    "hook": "opening line or first-frame hook",
+    "caption": "platform-ready caption",
+    "hashtags": ["#tag"],
+    "posting_checklist": ["checklist item"],
+    "sound_strategy": "optional string or null",
+    "cover_tip": "optional string or null"
+  },
+  "image_recommendations": [],
+  "video_recommendations": [
+    {
+      "label": "Reel clip | TikTok clip",
+      "aspect_ratio": "9:16",
+      "prompt": "detailed AI short-video prompt grounded in the trend",
+      "duration_seconds": 8,
+      "hook": "opening line for this specific post variant",
+      "caption": "platform-ready caption for this specific post variant",
+      "hashtags": ["#tag"],
+      "scenes": [
+        {
+          "scene_number": 1,
+          "duration_seconds": 3,
+          "visual_prompt": "shot description for the clip",
+          "on_screen_text": "optional overlay text",
+          "voiceover": "optional spoken line"
+        }
+      ]
+    }
+  ],
   "video_recommendation": {
     "hook": "first 3 seconds hook",
-    "total_duration_seconds": 15,
+    "total_duration_seconds": 8,
     "music_mood": "optional trending sound mood",
-    "scenes": [
-      {
-        "scene_number": 1,
-        "duration_seconds": 3,
-        "visual_prompt": "shot description for AI video/image frame",
-        "on_screen_text": "optional overlay text",
-        "voiceover": "optional spoken line"
-      }
-    ]
+    "scenes": []
   }"""
 
 
-_INSTAGRAM_RULES = """
+_INSTAGRAM_IMAGE_RULES = """
 Platform: Instagram
 - Optimize for feed (1:1 or 4:5), Reels (9:16), or carousel.
 - Lead with a scroll-stopping first line; keep captions scannable with line breaks.
 - Use 5-10 hashtags: mix broad nail tags, niche trend tags, and 1-2 local tags.
 - Return exactly ONE image_recommendation object with its own hook, caption, hashtags, and prompt.
-- A Reel storyboard is optional when relevant.
-- cover_tip should describe the Reel thumbnail frame.
+- Set video_recommendations to [] and video_recommendation to null.
+- cover_tip should describe the Reel thumbnail frame when relevant.
 - sound_strategy may suggest trending Reels audio style."""
 
+_INSTAGRAM_VIDEO_RULES = """
+Platform: Instagram Reels
+- Optimize for vertical 9:16 short-form video (4-12 seconds).
+- Hook must land in the first 1-3 seconds; write punchy on-screen text.
+- Use 5-10 hashtags: mix broad nail tags, niche trend tags, and 1-2 local tags.
+- Return exactly ONE video_recommendations object with hook, caption, hashtags, prompt, and 2-4 scenes.
+- Set image_recommendations to [].
+- platform_review.content_format must be instagram_reel.
+- sound_strategy should suggest trending Reels audio style."""
 
-_TIKTOK_RULES = """
+_TIKTOK_IMAGE_RULES = """
 Platform: TikTok
-- Optimize for vertical 9:16 short-form video (15-30 seconds).
+- Optimize for vertical 9:16 short-form video discovery copy even when generating a still.
 - Hook must land in the first 1-3 seconds; write punchy on-screen text.
 - Use 3-5 hashtags focused on discovery (#nailtok, trend tags).
 - Return exactly ONE image_recommendation object (9:16) with its own hook, caption, hashtags, and prompt.
-- Always include video_recommendation with 3-5 scenes and duration per scene.
+- Set video_recommendations to []."""
+
+_TIKTOK_VIDEO_RULES = """
+Platform: TikTok
+- Optimize for vertical 9:16 short-form video (4-12 seconds).
+- Hook must land in the first 1-3 seconds; write punchy on-screen text.
+- Use 3-5 hashtags focused on discovery (#nailtok, trend tags).
+- Return exactly ONE video_recommendations object with hook, caption, hashtags, prompt, and 3-5 scenes.
+- Set image_recommendations to [].
+- platform_review.content_format must be tiktok_video.
 - sound_strategy should suggest trending sound type or original audio approach."""
 
 
-def platform_brief_system_prompt(platform: SocialPlatform) -> str:
-    platform_rules = _INSTAGRAM_RULES if platform == "instagram" else _TIKTOK_RULES
-    video_note = (
-        "Set video_recommendation to null for instagram_feed-only posts."
-        if platform == "instagram"
-        else "video_recommendation is required for TikTok."
+def platform_brief_system_prompt(platform: SocialPlatform, post_format: str = "image") -> str:
+    if platform == "instagram":
+        platform_rules = _INSTAGRAM_VIDEO_RULES if post_format == "video" else _INSTAGRAM_IMAGE_RULES
+    else:
+        platform_rules = _TIKTOK_VIDEO_RULES if post_format == "video" else _TIKTOK_IMAGE_RULES
+
+    media_shape = _VIDEO_JSON_SHAPE if post_format == "video" else _IMAGE_JSON_SHAPE
+    media_rule = (
+        "video_recommendations must contain exactly one short-video variant with unique hook, caption, hashtags, prompt, and scenes."
+        if post_format == "video"
+        else "image_recommendations must contain exactly one post variant with unique hook, caption, hashtags, and prompt."
     )
+
     return f"""You are a beauty trend strategist helping salon owners turn evidence-backed trends into a platform-specific social post brief.
 Return ONLY valid JSON with this shape:
 {{
@@ -81,7 +133,7 @@ Return ONLY valid JSON with this shape:
   "service_suggestion": "service or offer to promote",
   "product_suggestion": "optional retail or treatment tie-in",
   "rationale": "why the suggestion fits this trend",
-{_PLATFORM_JSON_SHAPE}
+{media_shape}
 }}
 {platform_rules}
 Rules:
@@ -89,6 +141,5 @@ Rules:
 - Do not invent statistics or unsupported sources.
 - Captions should sound warm, concise, and human.
 - Image and video prompts must describe salon nail art — never faces without consent.
-- {video_note}
-- image_recommendations must contain exactly one post variant with unique hook, caption, hashtags, and prompt.
+- {media_rule}
 - platform_review should mirror that same variant for strengths, improvements, and checklist."""

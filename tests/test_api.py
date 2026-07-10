@@ -268,6 +268,7 @@ class StubBriefLLM(LLMProvider):
         platform = "tiktok" if "tiktok" in user.lower() else "instagram"
         content_format = "tiktok_video" if platform == "tiktok" else "instagram_reel"
         is_regeneration = "REGENERATION REQUEST" in user
+        is_video = "post format: video" in user.lower()
         image_prompt = (
             "Macro chrome nail art under moody salon lighting"
             if is_regeneration
@@ -283,6 +284,64 @@ class StubBriefLLM(LLMProvider):
             if is_regeneration
             else "Fresh trend, polished finish, salon-ready now."
         )
+        if is_video:
+            return LLMResponse(
+                content=f"""
+                {{
+                  "evidence_summary": "Backed by saved citations and the report summary.",
+                  "why_now": "The trend is timely and visible across current inspiration sources.",
+                  "caveats": null,
+                  "angles": ["Showcase the finish", "Pair with a seasonal offer", "Use a close-up reel hook"],
+                  "captions": [{{"locale": "en", "caption": "{caption}", "cta": "Book this week"}}],
+                  "hashtags": ["#nailtrend", "#saloninspo", "#booknow"],
+                  "posting_tip": "Pair the caption with your latest close-up client set.",
+                  "service_suggestion": "Signature chrome refresh",
+                  "product_suggestion": "Cuticle oil add-on",
+                  "rationale": "The trend naturally supports both a service spotlight and retail upsell.",
+                  "platform_review": {{
+                    "content_format": "{content_format}",
+                    "strengths": ["Strong visual trend", "Clear service tie-in"],
+                    "improvements": ["Add your own salon photo", "Keep hook under 3 seconds"],
+                    "hook": "{hook}",
+                    "caption": "{caption}",
+                    "hashtags": ["#nailtrend", "#saloninspo"],
+                    "posting_checklist": ["Use vertical 9:16", "Add location tag"],
+                    "sound_strategy": "Soft trending instrumental",
+                    "cover_tip": "Close-up chrome thumb frame"
+                  }},
+                  "image_recommendations": [],
+                  "video_recommendations": [
+                    {{
+                      "label": "Reel clip",
+                      "aspect_ratio": "9:16",
+                      "prompt": "Vertical close-up of chrome nail art under salon ring light, slow camera push-in",
+                      "duration_seconds": 8,
+                      "hook": "{hook}",
+                      "caption": "{caption}",
+                      "hashtags": ["#nailtrend", "#saloninspo", "#booknow"],
+                      "scenes": [
+                        {{
+                          "scene_number": 1,
+                          "duration_seconds": 3,
+                          "visual_prompt": "Close-up chrome nail under ring light",
+                          "on_screen_text": "Trending now",
+                          "voiceover": "This chrome finish is everywhere right now."
+                        }}
+                      ]
+                    }}
+                  ],
+                  "video_recommendation": {{
+                    "hook": "Watch the chrome catch the light",
+                    "total_duration_seconds": 8,
+                    "music_mood": "soft trending",
+                    "scenes": []
+                  }}
+                }}
+                """,
+                provider="stub",
+                model="stub-model",
+                usage=LLMUsageStats(prompt_tokens=100, completion_tokens=50, total_tokens=150, estimated_cost_usd=0),
+            )
         return LLMResponse(
             content=f"""
             {{
@@ -346,12 +405,14 @@ def test_brief_generation_and_idea_regeneration(tmp_path, monkeypatch):
     from willbe_trends.config import get_settings
     import willbe_trends.db.models as db_models
     import willbe_trends.api.routes.briefs as brief_routes
-    import willbe_trends.briefs.service as brief_service
-
-    async def _noop_enrich(idea, settings=None):
-        return idea
-
-    monkeypatch.setattr(brief_service, "enrich_content_idea_media", _noop_enrich)
+    monkeypatch.setattr(
+        "willbe_trends.api.brief_helpers.schedule_media_job_for_idea",
+        lambda *args, **kwargs: None,
+    )
+    monkeypatch.setattr(
+        "willbe_trends.api.routes.briefs.schedule_media_job_for_idea",
+        lambda *args, **kwargs: None,
+    )
 
     get_settings.cache_clear()
     db_models._engine = None
@@ -449,6 +510,84 @@ def test_brief_generation_and_idea_regeneration(tmp_path, monkeypatch):
     refetched_idea = refetched.json()["items"][0]["content_idea"]
     assert refetched_idea["platform_review"]["hook"] == "A fresh angle on chrome nails for your feed."
     assert len(refetched_idea["image_recommendations"]) == 2
+
+    get_settings.cache_clear()
+    db_models._engine = None
+    db_models._session_factory = None
+
+
+def test_video_brief_generation(tmp_path, monkeypatch):
+    db_path = tmp_path / "video-test.db"
+    monkeypatch.setenv("WILLBE_DATABASE_URL", f"sqlite:///{db_path}")
+
+    from willbe_trends.config import get_settings
+    import willbe_trends.db.models as db_models
+    import willbe_trends.api.routes.briefs as brief_routes_module
+    monkeypatch.setattr(
+        "willbe_trends.api.brief_helpers.schedule_media_job_for_idea",
+        lambda *args, **kwargs: None,
+    )
+    monkeypatch.setattr(
+        "willbe_trends.api.routes.briefs.schedule_media_job_for_idea",
+        lambda *args, **kwargs: None,
+    )
+    get_settings.cache_clear()
+    db_models._engine = None
+    db_models._session_factory = None
+    db_models.init_db()
+    session = db_models.SessionLocal()
+
+    report = TrendReport(
+        category=TrendCategory.NAILS,
+        mode="neutral",
+        research_time="July 2026",
+        summary="Chrome and sheer finishes are leading the month.",
+        trends=[
+            TrendSignal(
+                name="Soft Chrome",
+                description="Milky bases with reflective chrome finishes.",
+                popularity="rising",
+                colors=["milky white", "silver"],
+                techniques=["chrome powder"],
+                tags=["clean girl"],
+                confidence=0.86,
+                source_hint="Allure",
+            )
+        ],
+        generated_at="2026-07-04T12:00:00+00:00",
+        llm_provider="openai",
+        llm_model="gpt-4o-mini",
+        web_research=WebResearchBundle(
+            search_provider="duckduckgo",
+            queries=["chrome nails july 2026"],
+            citations=[],
+        ),
+    )
+    row = save_report(session, report, region="finland", web_search_enabled=True)
+    session.close()
+
+    monkeypatch.setattr(
+        brief_routes_module,
+        "create_provider",
+        lambda provider=None, settings=None: StubBriefLLM(),
+    )
+    client = TestClient(create_app())
+
+    created = client.post(
+        "/api/briefs/generate",
+        json={
+            "report_id": row.id,
+            "trend_name": "Soft Chrome",
+            "platform": "tiktok",
+            "post_format": "video",
+        },
+    )
+    assert created.status_code == 200
+    idea = created.json()["items"][0]["content_idea"]
+    assert idea["post_format"] == "video"
+    assert len(idea["video_recommendations"]) == 1
+    assert idea["image_recommendations"] == []
+    assert idea["video_recommendations"][0]["aspect_ratio"] == "9:16"
 
     get_settings.cache_clear()
     db_models._engine = None

@@ -1,27 +1,15 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { generateBrief, getResearch } from "../api";
+import { PostSetupPicker, postSetupLabel, type PostSetup } from "../components/PostSetupPicker";
 import { TrendReferencePanel } from "../components/TrendReferencePanel";
-import type { SocialPlatform, TrendSignal } from "../types";
-
-const PLATFORMS: { id: SocialPlatform; label: string; description: string }[] = [
-  {
-    id: "instagram",
-    label: "Instagram",
-    description: "Feed, carousel, or Reels.",
-  },
-  {
-    id: "tiktok",
-    label: "TikTok",
-    description: "Vertical short-form video.",
-  },
-];
+import type { TrendSignal } from "../types";
 
 export function GenerateBriefPage() {
   const { reportId, trendName } = useParams<{ reportId: string; trendName: string }>();
   const decodedTrend = trendName ? decodeURIComponent(trendName) : "";
   const navigate = useNavigate();
-  const [platform, setPlatform] = useState<SocialPlatform>("instagram");
+  const [setup, setSetup] = useState<PostSetup>({ platform: "instagram", postFormat: "image" });
   const [trend, setTrend] = useState<TrendSignal | null>(null);
   const [reportSummary, setReportSummary] = useState("");
   const [loadingTrend, setLoadingTrend] = useState(true);
@@ -43,25 +31,30 @@ export function GenerateBriefPage() {
       .finally(() => setLoadingTrend(false));
   }, [reportId, decodedTrend]);
 
-  const platformLabel = useMemo(
-    () => PLATFORMS.find((item) => item.id === platform)?.label ?? platform,
-    [platform],
-  );
+  const setupLabel = useMemo(() => postSetupLabel(setup), [setup]);
 
   async function runPipeline() {
     if (!reportId || !decodedTrend) return;
     setError(null);
     setStep("generating");
-    setMessage(`Creating your ${platformLabel} post…`);
+    setMessage(`Writing captions for ${setupLabel.toLowerCase()}…`);
 
     try {
       const brief = await generateBrief({
         report_id: reportId,
         trend_name: decodedTrend,
-        platform,
+        platform: setup.platform,
+        post_format: setup.postFormat,
       });
+      setMessage(
+        brief.active_media_jobs?.length
+          ? "Captions are ready. Creating media in the background…"
+          : "Post is ready.",
+      );
       setStep("done");
-      navigate(`/briefs/${brief.id}`);
+      navigate(`/briefs/${brief.id}`, {
+        state: brief.active_media_jobs?.length ? { mediaJobs: brief.active_media_jobs } : undefined,
+      });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Post generation failed");
       setStep("idle");
@@ -73,10 +66,9 @@ export function GenerateBriefPage() {
       <section className="hero hero-compact">
         <div className="badges">
           <span className="badge badge-accent">create post</span>
-          <span className="badge">{platformLabel}</span>
         </div>
         <h1>Create post for {decodedTrend || "trend"}</h1>
-        <p>Review the trend below, then generate caption options and images for your salon.</p>
+        <p>Review the trend, choose where you want to publish, then generate your first post option.</p>
       </section>
 
       {loadingTrend ? (
@@ -87,25 +79,26 @@ export function GenerateBriefPage() {
         <div className="panel panel-padding error-text">Trend not found in this report.</div>
       )}
 
-      <section className="panel panel-padding">
-        <h2 className="section-title">Platform</h2>
-        <div className="platform-picker">
-          {PLATFORMS.map((option) => (
-            <button
-              key={option.id}
-              type="button"
-              className={platform === option.id ? "platform-card active" : "platform-card"}
-              onClick={() => setPlatform(option.id)}
-              disabled={step !== "idle"}
-            >
-              <strong>{option.label}</strong>
-              <p>{option.description}</p>
-            </button>
-          ))}
+      <section className="panel panel-padding post-setup-panel">
+        <div className="post-setup-intro">
+          <p className="meta section-eyebrow">Post setup</p>
+          <h2 className="section-title">Choose platform and type</h2>
+          <p className="meta">
+            Each post can target a different network and format. Start with one combination for this trend.
+          </p>
         </div>
-      </section>
 
-      <section className="panel panel-padding pipeline-panel">
+        <PostSetupPicker value={setup} onChange={setSetup} disabled={step !== "idle"} />
+
+        <div className="post-setup-summary">
+          <span className="badge badge-accent">{setupLabel}</span>
+          <p className="meta">
+            {setup.postFormat === "video"
+              ? "We'll draft a vertical clip with hook, caption, and hashtags."
+              : "We'll draft caption copy, hashtags, and a salon image for this post."}
+          </p>
+        </div>
+
         {message ? <p className="status-message">{message}</p> : null}
         {error ? <p className="error-text">{error}</p> : null}
 
@@ -115,7 +108,7 @@ export function GenerateBriefPage() {
             onClick={runPipeline}
             disabled={!reportId || !decodedTrend || !trend || step !== "idle"}
           >
-            {step === "generating" ? "Generating post options…" : `Generate ${platformLabel} post`}
+            {step === "generating" ? "Generating post…" : `Generate ${setupLabel}`}
           </button>
           {reportId ? (
             <Link to={`/reports/${reportId}`} className="nav-link">

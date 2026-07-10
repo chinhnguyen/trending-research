@@ -1,11 +1,12 @@
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 
 from sqlalchemy.orm import Session, joinedload
 
 from willbe_trends.db.models import (
     BriefItemRow,
     ContentIdeaRow,
+    MediaGenerationJobRow,
     ResearchReportRow,
     ResearchBriefRow,
     TrendSignalRow,
@@ -20,6 +21,7 @@ from willbe_trends.models.briefs import (
     ImageRecommendation,
     PlatformPostReview,
     ProductServiceTieIn,
+    ShortVideoRecommendation,
     TrendBrief,
     VideoRecommendation,
 )
@@ -27,6 +29,7 @@ from willbe_trends.models.preferences import UserPreferences
 from willbe_trends.models.search import WebCitation, WebResearchBundle
 from willbe_trends.models.trends import TrendCategory, TrendReport, TrendSignal
 from willbe_trends.models.usage import LLMUsageStats
+from willbe_trends.models.media_jobs import ACTIVE_MEDIA_JOB_STATUSES, MediaJobStatus
 
 
 def report_to_schema(row: ResearchReportRow) -> TrendReport:
@@ -199,6 +202,7 @@ def _content_idea_to_schema(row: ContentIdeaRow | None) -> ContentIdea | None:
     return ContentIdea(
         id=row.id,
         platform=row.platform or "instagram",
+        post_format=row.post_format or "image",
         angles=loads_json(row.angles_json, []),
         captions=[BriefCaption.model_validate(item) for item in loads_json(row.captions_json, [])],
         hashtags=loads_json(row.hashtags_json, []),
@@ -217,6 +221,10 @@ def _content_idea_to_schema(row: ContentIdeaRow | None) -> ContentIdea | None:
             ImageRecommendation.model_validate(item)
             for item in loads_json(row.image_recommendations_json, [])
         ],
+        video_recommendations=[
+            ShortVideoRecommendation.model_validate(item)
+            for item in loads_json(row.video_recommendations_json, [])
+        ],
         video_recommendation=VideoRecommendation.model_validate(video_raw) if video_raw else None,
         generated_at=row.created_at,
     )
@@ -234,9 +242,13 @@ def _content_idea_row_from_schema(idea: ContentIdea, brief_item_id: str) -> Cont
         product_suggestion=idea.product_mapping.product_suggestion if idea.product_mapping else None,
         rationale=idea.product_mapping.rationale if idea.product_mapping else None,
         platform=idea.platform,
+        post_format=idea.post_format,
         platform_review_json=dumps_json(idea.platform_review.model_dump() if idea.platform_review else {}),
         image_recommendations_json=dumps_json(
             [item.model_dump() for item in idea.image_recommendations]
+        ),
+        video_recommendations_json=dumps_json(
+            [item.model_dump() for item in idea.video_recommendations]
         ),
         video_recommendation_json=(
             dumps_json(idea.video_recommendation.model_dump()) if idea.video_recommendation else None
@@ -383,3 +395,155 @@ def replace_content_idea(
     session.commit()
     session.refresh(row)
     return row
+
+
+def get_content_idea_row(session: Session, idea_id: str) -> ContentIdeaRow | None:
+    return session.get(ContentIdeaRow, idea_id)
+
+
+def update_content_idea(session: Session, idea_id: str, idea: ContentIdea) -> ContentIdeaRow:
+    row = get_content_idea_row(session, idea_id)
+    if row is None:
+        raise ValueError("Content idea not found")
+
+    updated = _content_idea_row_from_schema(idea, row.brief_item_id)
+    row.angles_json = updated.angles_json
+    row.captions_json = updated.captions_json
+    row.hashtags_json = updated.hashtags_json
+    row.posting_tip = updated.posting_tip
+    row.service_suggestion = updated.service_suggestion
+    row.product_suggestion = updated.product_suggestion
+    row.rationale = updated.rationale
+    row.platform = updated.platform
+    row.post_format = updated.post_format
+    row.platform_review_json = updated.platform_review_json
+    row.image_recommendations_json = updated.image_recommendations_json
+    row.video_recommendations_json = updated.video_recommendations_json
+    row.video_recommendation_json = updated.video_recommendation_json
+    session.commit()
+    session.refresh(row)
+    return row
+
+
+def idea_needs_media(idea: ContentIdea) -> bool:
+    if idea.post_format == "video":
+        return any(not video.generated_url for video in idea.video_recommendations)
+    return any(not image.generated_url for image in idea.image_recommendations)
+
+
+def media_job_to_schema(row: MediaGenerationJobRow) -> MediaJobStatus:
+    return MediaJobStatus(
+        id=row.id,
+        status=row.status,
+        stage=row.stage,
+        progress_percent=row.progress_percent,
+        error_message=row.error_message,
+        brief_id=row.brief_id,
+        brief_item_id=row.brief_item_id,
+        content_idea_id=row.content_idea_id,
+        created_at=row.created_at,
+        updated_at=row.updated_at,
+        completed_at=row.completed_at,
+    )
+
+
+def create_media_job(
+    session: Session,
+    *,
+    job_id: str,
+    content_idea_id: str,
+    brief_item_id: str,
+    brief_id: str,
+    status: str,
+    stage: str,
+    progress_percent: int,
+    error_message: str | None = None,
+    completed_at: datetime | None = None,
+) -> MediaGenerationJobRow:
+    now = datetime.now(timezone.utc)
+    row = MediaGenerationJobRow(
+        id=job_id,
+        content_idea_id=content_idea_id,
+        brief_item_id=brief_item_id,
+        brief_id=brief_id,
+        status=status,
+        stage=stage,
+        progress_percent=progress_percent,
+        error_message=error_message,
+        created_at=now,
+        updated_at=now,
+        completed_at=completed_at,
+    )
+    session.add(row)
+    session.commit()
+    session.refresh(row)
+    return row
+
+
+def update_media_job(
+    session: Session,
+    job_id: str,
+    *,
+    status: str | None = None,
+    stage: str | None = None,
+    progress_percent: int | None = None,
+    error_message: str | None = None,
+    completed_at: datetime | None = None,
+) -> MediaGenerationJobRow | None:
+    row = get_media_job(session, job_id)
+    if row is None:
+        return None
+    if status is not None:
+        row.status = status
+    if stage is not None:
+        row.stage = stage
+    if progress_percent is not None:
+        row.progress_percent = progress_percent
+    if error_message is not None:
+        row.error_message = error_message
+    if completed_at is not None:
+        row.completed_at = completed_at
+    row.updated_at = datetime.now(timezone.utc)
+    session.commit()
+    session.refresh(row)
+    return row
+
+
+def get_media_job(session: Session, job_id: str) -> MediaGenerationJobRow | None:
+    return session.get(MediaGenerationJobRow, job_id)
+
+
+def get_active_media_jobs_for_brief(session: Session, brief_id: str) -> list[MediaGenerationJobRow]:
+    return (
+        session.query(MediaGenerationJobRow)
+        .filter(
+            MediaGenerationJobRow.brief_id == brief_id,
+            MediaGenerationJobRow.status.in_(ACTIVE_MEDIA_JOB_STATUSES),
+        )
+        .order_by(MediaGenerationJobRow.created_at.desc())
+        .all()
+    )
+
+
+def get_active_media_job_for_content_idea(
+    session: Session,
+    content_idea_id: str,
+) -> MediaGenerationJobRow | None:
+    return (
+        session.query(MediaGenerationJobRow)
+        .filter(
+            MediaGenerationJobRow.content_idea_id == content_idea_id,
+            MediaGenerationJobRow.status.in_(ACTIVE_MEDIA_JOB_STATUSES),
+        )
+        .order_by(MediaGenerationJobRow.created_at.desc())
+        .first()
+    )
+
+
+def list_resumable_media_jobs(session: Session) -> list[MediaGenerationJobRow]:
+    return (
+        session.query(MediaGenerationJobRow)
+        .filter(MediaGenerationJobRow.status.in_(ACTIVE_MEDIA_JOB_STATUSES))
+        .order_by(MediaGenerationJobRow.created_at.asc())
+        .all()
+    )

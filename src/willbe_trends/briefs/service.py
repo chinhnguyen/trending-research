@@ -6,7 +6,6 @@ from datetime import datetime, timezone
 from willbe_trends.briefs.prompts import platform_brief_system_prompt
 from willbe_trends.config import Settings, get_settings
 from willbe_trends.db.models import BriefItemRow, ResearchReportRow
-from willbe_trends.media.service import enrich_content_idea_media
 from willbe_trends.models.briefs import (
     BriefCaption,
     BriefItem,
@@ -14,17 +13,18 @@ from willbe_trends.models.briefs import (
     ImageRecommendation,
     PlatformPostReview,
     ProductServiceTieIn,
+    ShortVideoRecommendation,
     TrendBrief,
     VideoRecommendation,
     VideoScene,
 )
 from willbe_trends.models.search import WebCitation
-from willbe_trends.models.social import SocialPlatform
+from willbe_trends.models.social import PostFormat, SocialPlatform
 from willbe_trends.models.trends import TrendSignal
 from willbe_trends.models.usage import LLMUsageStats
 from willbe_trends.llm.base import LLMProvider, LLMResponse
 
-BRIEF_ITEM_SYSTEM_PROMPT = platform_brief_system_prompt("instagram")
+BRIEF_ITEM_SYSTEM_PROMPT = platform_brief_system_prompt("instagram", "image")
 MAX_TOTAL_POST_OPTIONS = 6
 
 
@@ -73,12 +73,14 @@ def _brief_item_prompt(
     score: float,
     locales: list[str],
     platform: SocialPlatform,
+    post_format: PostFormat = "image",
     regenerate_context: str = "",
 ) -> str:
     citation_lines = "\n".join(
         f"- {citation.title}: {citation.snippet or citation.url}" for citation in citations[:5]
     )
     return f"""Target platform: {platform}
+Post format: {post_format}
 Region: {region}
 Time period: {research_time}
 Brief score: {score:.2f}
@@ -162,11 +164,41 @@ def _image_recommendations_from_payload(
     ]
 
 
+def _video_recommendations_from_payload(
+    payload: dict,
+    platform_review: PlatformPostReview | None = None,
+) -> list[ShortVideoRecommendation]:
+    items = payload.get("video_recommendations", [])[:1]
+    if not items:
+        return []
+
+    item = items[0]
+    scenes = [VideoScene.model_validate(scene) for scene in item.get("scenes", [])]
+    return [
+        ShortVideoRecommendation(
+            label=item.get("label", "Video option"),
+            aspect_ratio=item.get("aspect_ratio", "9:16"),
+            prompt=item.get("prompt", ""),
+            duration_seconds=int(item.get("duration_seconds", 8)),
+            hook=item.get("hook") or (platform_review.hook if platform_review else None),
+            caption=item.get("caption") or (platform_review.caption if platform_review else None),
+            hashtags=(item.get("hashtags") or (platform_review.hashtags if platform_review else []))[:10],
+            scenes=scenes,
+        )
+    ]
+
+
 def _sync_platform_review_from_latest_option(idea: ContentIdea) -> ContentIdea:
-    if not idea.image_recommendations or idea.platform_review is None:
+    if idea.platform_review is None:
         return idea
 
-    latest = idea.image_recommendations[-1]
+    if idea.post_format == "video" and idea.video_recommendations:
+        latest = idea.video_recommendations[-1]
+    elif idea.image_recommendations:
+        latest = idea.image_recommendations[-1]
+    else:
+        return idea
+
     return idea.model_copy(
         update={
             "platform_review": idea.platform_review.model_copy(
@@ -190,6 +222,16 @@ def _post_option_key(image: ImageRecommendation) -> str:
     )
 
 
+def _video_option_key(video: ShortVideoRecommendation) -> str:
+    return "|".join(
+        [
+            (video.hook or "").strip().lower(),
+            (video.caption or "").strip().lower(),
+            video.prompt.strip().lower(),
+        ]
+    )
+
+
 def _video_recommendation_from_payload(payload: dict) -> VideoRecommendation | None:
     raw = payload.get("video_recommendation")
     if not raw:
@@ -197,7 +239,12 @@ def _video_recommendation_from_payload(payload: dict) -> VideoRecommendation | N
     return VideoRecommendation.model_validate(raw)
 
 
-def _idea_from_payload(payload: dict, *, platform: SocialPlatform) -> tuple[str, str, str | None, ContentIdea]:
+def _idea_from_payload(
+    payload: dict,
+    *,
+    platform: SocialPlatform,
+    post_format: PostFormat = "image",
+) -> tuple[str, str, str | None, ContentIdea]:
     captions = [BriefCaption.model_validate(item) for item in payload.get("captions", [])]
     if not captions:
         captions = [BriefCaption(locale="en", caption="Show the trend with your latest salon work.")]
@@ -206,6 +253,7 @@ def _idea_from_payload(payload: dict, *, platform: SocialPlatform) -> tuple[str,
     idea = ContentIdea(
         id=str(uuid.uuid4()),
         platform=platform,
+        post_format=post_format,
         angles=payload.get("angles", [])[:3],
         captions=captions,
         hashtags=payload.get("hashtags", [])[:10],
@@ -220,7 +268,12 @@ def _idea_from_payload(payload: dict, *, platform: SocialPlatform) -> tuple[str,
             else None
         ),
         platform_review=platform_review,
-        image_recommendations=_image_recommendations_from_payload(payload, platform_review),
+        image_recommendations=(
+            _image_recommendations_from_payload(payload, platform_review) if post_format == "image" else []
+        ),
+        video_recommendations=(
+            _video_recommendations_from_payload(payload, platform_review) if post_format == "video" else []
+        ),
         video_recommendation=_video_recommendation_from_payload(payload),
         generated_at=datetime.now(timezone.utc),
     )
@@ -234,6 +287,18 @@ def _idea_from_payload(payload: dict, *, platform: SocialPlatform) -> tuple[str,
 
 
 def _merge_post_options(prior: ContentIdea, new: ContentIdea) -> ContentIdea:
+    if new.post_format == "video":
+        seen_keys = {_video_option_key(video) for video in prior.video_recommendations}
+        merged_videos = list(prior.video_recommendations)
+        for video in new.video_recommendations[:1]:
+            key = _video_option_key(video)
+            if key in seen_keys:
+                continue
+            merged_videos.append(video)
+            seen_keys.add(key)
+        merged = new.model_copy(update={"video_recommendations": merged_videos[:MAX_TOTAL_POST_OPTIONS]})
+        return _sync_platform_review_from_latest_option(merged)
+
     seen_keys = {_post_option_key(image) for image in prior.image_recommendations}
     merged_images = list(prior.image_recommendations)
     for image in new.image_recommendations[:1]:
@@ -250,6 +315,23 @@ def _merge_post_options(prior: ContentIdea, new: ContentIdea) -> ContentIdea:
 def _regenerate_context(prior: ContentIdea | None) -> str:
     if prior is None:
         return ""
+    if prior.post_format == "video":
+        lines = [
+            "",
+            "REGENERATION REQUEST:",
+            "Add exactly one more short-video option with a new hook, caption, hashtags, and video prompt.",
+            "Return exactly one video_recommendations object. It will be appended to prior options.",
+            "Make the copy and visual prompt clearly different from every prior option.",
+            "Do not reuse prior wording or video prompts verbatim.",
+        ]
+        for index, video in enumerate(prior.video_recommendations, start=1):
+            lines.append(f"Prior option {index} hook: {video.hook or 'none'}")
+            lines.append(f"Prior option {index} caption: {video.caption or 'none'}")
+            if video.hashtags:
+                lines.append(f"Prior option {index} hashtags: {', '.join(video.hashtags)}")
+            lines.append(f"Prior option {index} video prompt ({video.label}): {video.prompt}")
+        return "\n".join(lines)
+
     lines = [
         "",
         "REGENERATION REQUEST:",
@@ -279,10 +361,11 @@ async def build_brief_item(
     score: float,
     locales: list[str],
     platform: SocialPlatform = "instagram",
+    post_format: PostFormat = "image",
     settings: Settings | None = None,
 ) -> tuple[BriefItem, LLMResponse]:
     response = await llm.complete(
-        system=platform_brief_system_prompt(platform),
+        system=platform_brief_system_prompt(platform, post_format),
         user=_brief_item_prompt(
             trend=trend,
             report_summary=report_summary,
@@ -292,11 +375,15 @@ async def build_brief_item(
             score=score,
             locales=locales,
             platform=platform,
+            post_format=post_format,
         ),
     )
     payload = _extract_json_payload(response.content)
-    evidence_summary, why_now, caveats, idea = _idea_from_payload(payload, platform=platform)
-    idea = await enrich_content_idea_media(idea, settings=settings or get_settings())
+    evidence_summary, why_now, caveats, idea = _idea_from_payload(
+        payload,
+        platform=platform,
+        post_format=post_format,
+    )
     item = BriefItem(
         id=str(uuid.uuid4()),
         rank=rank,
@@ -357,6 +444,7 @@ async def generate_brief_for_trend(
     llm: LLMProvider,
     trend_name: str,
     platform: SocialPlatform = "instagram",
+    post_format: PostFormat = "image",
     settings: Settings | None = None,
 ) -> TrendBrief:
     trend_row = find_trend_in_report(row, trend_name)
@@ -378,14 +466,16 @@ async def generate_brief_for_trend(
         score=score,
         locales=locales,
         platform=platform,
+        post_format=post_format,
         settings=settings,
     )
     platform_label = "Instagram" if platform == "instagram" else "TikTok"
+    format_label = "video" if post_format == "video" else "post"
     return TrendBrief(
         id=str(uuid.uuid4()),
         report_id=row.id,
-        title=f"{platform_label} post — {trend.name}",
-        summary=f"{platform_label} post ideas for {trend.name}, grounded in the saved {row.research_time or 'current'} research.",
+        title=f"{platform_label} {format_label} — {trend.name}",
+        summary=f"{platform_label} {format_label} ideas for {trend.name}, grounded in the saved {row.research_time or 'current'} research.",
         region=row.region,
         research_time=row.research_time or "",
         generated_at=datetime.now(timezone.utc),
@@ -402,6 +492,7 @@ async def generate_brief_from_report(
     llm: LLMProvider,
     max_trends: int = 8,
     platform: SocialPlatform = "instagram",
+    post_format: PostFormat = "image",
     settings: Settings | None = None,
 ) -> TrendBrief:
     citations = _report_citations(row)
@@ -432,6 +523,7 @@ async def generate_brief_from_report(
             score=score,
             locales=locales,
             platform=platform,
+            post_format=post_format,
             settings=settings,
         )
         items.append(item)
@@ -462,9 +554,11 @@ async def regenerate_content_idea_for_item(
     region: str,
     research_time: str,
     platform: SocialPlatform = "instagram",
+    post_format: PostFormat | None = None,
     settings: Settings | None = None,
     prior_idea: ContentIdea | None = None,
 ) -> tuple[ContentIdea, LLMResponse]:
+    resolved_format = post_format or (prior_idea.post_format if prior_idea else "image")
     trend = TrendSignal(
         name=item.trend_name,
         description=item.trend_description,
@@ -479,7 +573,7 @@ async def regenerate_content_idea_for_item(
         image_alt=item.image_alt,
     )
     response = await llm.complete(
-        system=platform_brief_system_prompt(platform),
+        system=platform_brief_system_prompt(platform, resolved_format),
         user=_brief_item_prompt(
             trend=trend,
             report_summary=report_summary,
@@ -489,12 +583,13 @@ async def regenerate_content_idea_for_item(
             score=item.score,
             locales=_locale_candidates(region),
             platform=platform,
+            post_format=resolved_format,
             regenerate_context=_regenerate_context(prior_idea),
         ),
     )
     payload = _extract_json_payload(response.content)
-    _, _, _, idea = _idea_from_payload(payload, platform=platform)
+    _, _, _, idea = _idea_from_payload(payload, platform=platform, post_format=resolved_format)
     if prior_idea is not None:
+        idea = idea.model_copy(update={"post_format": prior_idea.post_format})
         idea = _merge_post_options(prior_idea, idea)
-    idea = await enrich_content_idea_media(idea, settings=settings or get_settings())
     return idea, response

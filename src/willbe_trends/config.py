@@ -8,6 +8,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 LLMProviderName = Literal["openai", "anthropic", "ollama"]
 SearchProviderName = Literal["duckduckgo", "tavily"]
 SocialPlatformName = Literal["instagram", "tiktok"]
+PostFormatName = Literal["image", "video"]
 
 
 class Settings(BaseSettings):
@@ -79,7 +80,12 @@ class Settings(BaseSettings):
         default=2,
         validation_alias="WILLBE_MEDIA_MAX_VIDEO_SCENES",
     )
+    willbe_media_max_videos_per_post: int = Field(
+        default=1,
+        validation_alias="WILLBE_MEDIA_MAX_VIDEOS_PER_POST",
+    )
     openai_image_model: str = Field(default="gpt-image-1-mini", validation_alias="OPENAI_IMAGE_MODEL")
+    openai_video_model: str = Field(default="sora-2", validation_alias="OPENAI_VIDEO_MODEL")
 
     tavily_api_key: str | None = Field(default=None, validation_alias="TAVILY_API_KEY")
 

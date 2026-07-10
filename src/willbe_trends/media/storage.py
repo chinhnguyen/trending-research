@@ -4,7 +4,7 @@ import uuid
 from pathlib import Path
 
 MEDIA_DIR = Path("data/media")
-_FILENAME_PATTERN = re.compile(r"^[a-f0-9-]+\.(png|jpg|jpeg|webp)$", re.IGNORECASE)
+_FILENAME_PATTERN = re.compile(r"^[a-f0-9-]+\.(png|jpg|jpeg|webp|mp4)$", re.IGNORECASE)
 
 
 def media_dir() -> Path:
@@ -38,6 +38,14 @@ def persist_generated_image(image_url: str | None) -> str | None:
 
     filename = f"{uuid.uuid4()}.{extension}"
     (media_dir() / filename).write_bytes(base64.b64decode(encoded))
+    return media_public_url(filename)
+
+
+def persist_generated_video(data: bytes | None, *, extension: str = "mp4") -> str | None:
+    if not data:
+        return None
+    filename = f"{uuid.uuid4()}.{extension}"
+    (media_dir() / filename).write_bytes(data)
     return media_public_url(filename)
 
 

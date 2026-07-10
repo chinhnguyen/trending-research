@@ -174,8 +174,10 @@ class ContentIdeaRow(Base):
     product_suggestion: Mapped[str | None] = mapped_column(Text, nullable=True)
     rationale: Mapped[str | None] = mapped_column(Text, nullable=True)
     platform: Mapped[str] = mapped_column(String(32), default="instagram")
+    post_format: Mapped[str] = mapped_column(String(16), default="image")
     platform_review_json: Mapped[str] = mapped_column(Text, default="{}")
     image_recommendations_json: Mapped[str] = mapped_column(Text, default="[]")
+    video_recommendations_json: Mapped[str] = mapped_column(Text, default="[]")
     video_recommendation_json: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
@@ -184,6 +186,36 @@ class ContentIdeaRow(Base):
     )
 
     brief_item: Mapped[BriefItemRow] = relationship(back_populates="ideas")
+
+
+class MediaGenerationJobRow(Base):
+    __tablename__ = "media_generation_jobs"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    content_idea_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("content_ideas.id", ondelete="CASCADE"), index=True
+    )
+    brief_item_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("brief_items.id", ondelete="CASCADE"), index=True
+    )
+    brief_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("research_briefs.id", ondelete="CASCADE"), index=True
+    )
+    status: Mapped[str] = mapped_column(String(32), default="queued", index=True)
+    stage: Mapped[str] = mapped_column(Text, default="")
+    progress_percent: Mapped[int] = mapped_column(Integer, default=0)
+    error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        index=True,
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        onupdate=lambda: datetime.now(timezone.utc),
+    )
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
 
 _engine = None
@@ -254,8 +286,10 @@ def _migrate_schema(engine) -> None:
             idea_columns = {column["name"] for column in inspector.get_columns("content_ideas")}
             for column_name, column_type in {
                 "platform": "TEXT DEFAULT 'instagram'",
+                "post_format": "TEXT DEFAULT 'image'",
                 "platform_review_json": "TEXT DEFAULT '{}'",
                 "image_recommendations_json": "TEXT DEFAULT '[]'",
+                "video_recommendations_json": "TEXT DEFAULT '[]'",
                 "video_recommendation_json": "TEXT",
             }.items():
                 if column_name not in idea_columns:

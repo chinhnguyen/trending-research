@@ -1,7 +1,9 @@
-import { useState } from "react";
-import type { ContentIdea } from "../types";
+import { useEffect, useState } from "react";
+import type { ContentIdea, MediaJob } from "../types";
 import { copyPostBundle, formatHashtags, formatLabel } from "../utils/postFormat";
 import { InstagramShareButton } from "./InstagramShareButton";
+import { findActiveJobForIdea, lastPendingOptionIndex, OptionMediaProgress } from "./OptionMediaProgress";
+import { PostSetupPicker, postSetupLabel, type PostSetup } from "./PostSetupPicker";
 
 export type PostOption = {
   id: string;
@@ -10,8 +12,9 @@ export type PostOption = {
   hashtags: string[];
   hook?: string | null;
   imageUrl?: string | null;
+  videoUrl?: string | null;
   formatLabel?: string;
-  imagePrompt?: string;
+  mediaPrompt?: string;
 };
 
 function buildPostOptions(idea: ContentIdea): PostOption[] {
@@ -21,8 +24,32 @@ function buildPostOptions(idea: ContentIdea): PostOption[] {
   const fallbackHashtags = review?.hashtags.length ? review.hashtags : idea.hashtags;
   const fallbackHook = review?.hook ?? null;
 
-  const options: PostOption[] = [];
+  if (idea.post_format === "video") {
+    if (idea.video_recommendations.length === 0) {
+      return [
+        {
+          id: "video-main",
+          title: "Video script",
+          caption: fallbackCaption,
+          hashtags: fallbackHashtags,
+          hook: fallbackHook,
+        },
+      ];
+    }
 
+    return idea.video_recommendations.map((video, index) => ({
+      id: `video-${index}`,
+      title: video.label || `Video option ${index + 1}`,
+      caption: video.caption ?? fallbackCaption,
+      hashtags: video.hashtags.length > 0 ? video.hashtags : fallbackHashtags,
+      hook: video.hook ?? fallbackHook,
+      videoUrl: video.generated_url,
+      formatLabel: formatLabel(video.aspect_ratio),
+      mediaPrompt: video.prompt,
+    }));
+  }
+
+  const options: PostOption[] = [];
   if (idea.image_recommendations.length === 0) {
     options.push({
       id: "text-main",
@@ -41,7 +68,7 @@ function buildPostOptions(idea: ContentIdea): PostOption[] {
         hook: image.hook ?? fallbackHook,
         imageUrl: image.generated_url,
         formatLabel: formatLabel(image.aspect_ratio),
-        imagePrompt: image.prompt,
+        mediaPrompt: image.prompt,
       });
     });
   }
@@ -51,16 +78,29 @@ function buildPostOptions(idea: ContentIdea): PostOption[] {
 
 export function PostOptionsList({
   idea,
+  mediaJobs,
   onGenerateMore,
   generatingMore,
 }: {
   idea: ContentIdea;
-  onGenerateMore?: () => void;
+  mediaJobs?: MediaJob[];
+  onGenerateMore?: (setup: PostSetup) => void;
   generatingMore?: boolean;
 }) {
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [nextSetup, setNextSetup] = useState<PostSetup>({
+    platform: idea.platform,
+    postFormat: idea.post_format,
+  });
   const options = buildPostOptions(idea);
   const isInstagram = idea.platform === "instagram";
+  const isVideo = idea.post_format === "video";
+  const activeJob = findActiveJobForIdea(mediaJobs, idea.id);
+  const pendingOptionIndex = lastPendingOptionIndex(options);
+
+  useEffect(() => {
+    setNextSetup({ platform: idea.platform, postFormat: idea.post_format });
+  }, [idea.id, idea.platform, idea.post_format]);
 
   async function handleCopy(option: PostOption) {
     const caption = option.hook ? `${option.hook}\n\n${option.caption}` : option.caption;
@@ -78,23 +118,44 @@ export function PostOptionsList({
             Pick a version
           </h2>
           <p className="meta">
-            Each option has its own hook, caption, and image.{" "}
+            {isVideo
+              ? "Each option is a short vertical video with its own hook and caption."
+              : "Each option has its own hook, caption, and image."}{" "}
             {isInstagram
-              ? "Post on Instagram copies your caption, saves the image, and opens Instagram for you."
+              ? "Post on Instagram copies your caption, saves the media, and opens Instagram for you."
               : "Generate more to add one new variant at a time (up to 6)."}
           </p>
         </div>
-        {onGenerateMore ? (
-          <button
-            type="button"
-            className="button button-secondary"
-            onClick={onGenerateMore}
-            disabled={generatingMore}
-          >
-            {generatingMore ? "Generating…" : "Generate more options"}
-          </button>
-        ) : null}
       </div>
+
+      {onGenerateMore ? (
+        <div className="post-generate-more panel panel-padding">
+          <div className="post-generate-more-copy">
+            <p className="meta section-eyebrow">Add another option</p>
+            <h3 className="section-title" style={{ margin: "0 0 8px" }}>
+              Choose platform for the next variant
+            </h3>
+            <p className="meta">Post type stays the same for this post.</p>
+          </div>
+          <PostSetupPicker
+            value={nextSetup}
+            onChange={setNextSetup}
+            disabled={generatingMore}
+            lockFormat
+            compact
+          />
+          <div className="button-row">
+            <button
+              type="button"
+              className="button button-secondary"
+              onClick={() => onGenerateMore(nextSetup)}
+              disabled={generatingMore}
+            >
+              {generatingMore ? "Generating…" : `Generate ${postSetupLabel(nextSetup)}`}
+            </button>
+          </div>
+        </div>
+      ) : null}
 
       <div className="post-options-list">
         {options.map((option, index) => (
@@ -103,14 +164,16 @@ export function PostOptionsList({
               <div>
                 <span className="badge badge-accent">Option {index + 1}</span>
                 {option.formatLabel ? <span className="badge">{option.formatLabel}</span> : null}
+                {isVideo ? <span className="badge">Short video</span> : null}
               </div>
               {isInstagram ? (
-                <InstagramShareButton option={option} />
+                <InstagramShareButton option={option} disabled={index === pendingOptionIndex && !!activeJob} />
               ) : (
                 <button
                   type="button"
                   className="button button-primary button-compact"
                   onClick={() => handleCopy(option)}
+                  disabled={index === pendingOptionIndex && !!activeJob}
                 >
                   {copiedId === option.id ? "Copied" : "Copy for posting"}
                 </button>
@@ -137,14 +200,21 @@ export function PostOptionsList({
                 ) : null}
               </div>
 
-              {option.imageUrl || option.imagePrompt ? (
+              {option.videoUrl || option.imageUrl || option.mediaPrompt ? (
                 <div className="post-option-media">
-                  {option.imageUrl ? (
+                  {option.videoUrl ? (
+                    <video src={option.videoUrl} controls playsInline preload="metadata" />
+                  ) : option.imageUrl ? (
                     <img src={option.imageUrl} alt={option.title} loading="lazy" />
+                  ) : index === pendingOptionIndex && activeJob ? (
+                    <div className="media-card-placeholder generating">
+                      <OptionMediaProgress job={activeJob} />
+                      {option.mediaPrompt ? <p className="media-prompt-preview">{option.mediaPrompt}</p> : null}
+                    </div>
                   ) : (
                     <div className="media-card-placeholder">
-                      <p className="meta">{option.formatLabel ?? "Image"}</p>
-                      <p>{option.imagePrompt}</p>
+                      <p className="meta">{option.formatLabel ?? (isVideo ? "Video" : "Image")}</p>
+                      <p>{option.mediaPrompt}</p>
                     </div>
                   )}
                 </div>
@@ -154,7 +224,7 @@ export function PostOptionsList({
         ))}
       </div>
 
-      {idea.video_recommendation ? (
+      {idea.video_recommendation && idea.video_recommendations.length === 0 ? (
         <div className="video-brief panel panel-padding" style={{ marginTop: 16 }}>
           <h3 className="section-title">Video storyboard</h3>
           <p>{idea.video_recommendation.hook}</p>

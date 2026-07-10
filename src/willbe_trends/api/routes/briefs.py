@@ -1,13 +1,13 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
+from willbe_trends.api.brief_helpers import build_brief_out, schedule_media_jobs_for_brief
 from willbe_trends.api.deps import get_db
-from willbe_trends.api.schemas import BriefGenerateRequest, BriefOut, ContentIdeaGenerateRequest, ContentIdeaOut
+from willbe_trends.api.schemas import BriefGenerateRequest, BriefOut, ContentIdeaGenerateRequest, ContentIdeaOut, MediaJobOut
 from willbe_trends.briefs.service import generate_brief_for_trend, generate_brief_from_report, regenerate_content_idea_for_item
 from willbe_trends.config import get_settings
 from willbe_trends.db.repository import (
     _content_idea_to_schema,
-    brief_to_schema,
     get_brief,
     get_brief_item,
     get_latest_brief_for_report,
@@ -17,6 +17,7 @@ from willbe_trends.db.repository import (
     save_brief,
 )
 from willbe_trends.llm.registry import create_provider
+from willbe_trends.media.jobs import schedule_media_job_for_idea
 from willbe_trends.models.search import WebCitation
 
 router = APIRouter(tags=["briefs"])
@@ -40,6 +41,7 @@ async def generate_brief(
                 llm=llm,
                 trend_name=request.trend_name,
                 platform=request.platform,
+                post_format=request.post_format,
                 settings=settings,
             )
         except ValueError as exc:
@@ -50,10 +52,12 @@ async def generate_brief(
             llm=llm,
             max_trends=request.max_trends,
             platform=request.platform,
+            post_format=request.post_format,
             settings=settings,
         )
     saved = save_brief(db, brief)
-    return brief_to_schema(saved)
+    schedule_media_jobs_for_brief(db, saved)
+    return build_brief_out(db, saved)
 
 
 @router.get("/briefs/latest", response_model=BriefOut)
@@ -61,7 +65,7 @@ def latest_brief(report_id: str = Query(...), db: Session = Depends(get_db)):
     row = get_latest_brief_for_report(db, report_id)
     if row is None:
         raise HTTPException(status_code=404, detail="Brief not found")
-    return brief_to_schema(row)
+    return build_brief_out(db, row)
 
 
 @router.get("/briefs/{brief_id}", response_model=BriefOut)
@@ -69,7 +73,7 @@ def brief_detail(brief_id: str, db: Session = Depends(get_db)):
     row = get_brief(db, brief_id)
     if row is None:
         raise HTTPException(status_code=404, detail="Brief not found")
-    return brief_to_schema(row)
+    return build_brief_out(db, row)
 
 
 @router.post("/ideas/generate", response_model=ContentIdeaOut)
@@ -102,6 +106,7 @@ async def generate_content_idea(
         region=report.region,
         research_time=report.research_time or "",
         platform=request.platform,
+        post_format=request.post_format,
         settings=settings,
         prior_idea=prior,
     )
@@ -109,4 +114,14 @@ async def generate_content_idea(
     content_idea = _content_idea_to_schema(row)
     if content_idea is None:
         raise HTTPException(status_code=500, detail="Content idea could not be created")
-    return ContentIdeaOut(brief_item_id=request.brief_item_id, **content_idea.model_dump())
+    active_job = schedule_media_job_for_idea(
+        db,
+        content_idea=content_idea,
+        brief_item_id=request.brief_item_id,
+        brief_id=item.brief_id,
+    )
+    return ContentIdeaOut(
+        brief_item_id=request.brief_item_id,
+        active_media_job=MediaJobOut(**active_job.model_dump()) if active_job else None,
+        **content_idea.model_dump(),
+    )

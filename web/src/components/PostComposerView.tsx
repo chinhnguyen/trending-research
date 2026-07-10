@@ -1,5 +1,4 @@
-import { Link } from "react-router-dom";
-import type { ContentIdea, SocialPlatform, TrendSignal } from "../types";
+import type { ContentIdea, MediaJob, PostFormat, SocialPlatform, TrendSignal } from "../types";
 import { PostGuidancePanel } from "./PostGuidancePanel";
 import { PostOptionsList } from "./PostOptionsList";
 import { TrendReferencePanel } from "./TrendReferencePanel";
@@ -14,8 +13,7 @@ export function PostComposerView({
   evidenceSummary,
   whyNow,
   idea,
-  briefId,
-  briefItemId,
+  mediaJobs,
   onGenerateMore,
   generatingMore,
 }: {
@@ -23,9 +21,8 @@ export function PostComposerView({
   evidenceSummary?: string;
   whyNow?: string;
   idea: ContentIdea;
-  briefId?: string;
-  briefItemId?: string;
-  onGenerateMore?: () => void;
+  mediaJobs?: MediaJob[];
+  onGenerateMore?: (setup: { platform: SocialPlatform; postFormat: PostFormat }) => void;
   generatingMore?: boolean;
 }) {
   const review = idea.platform_review;
@@ -39,18 +36,12 @@ export function PostComposerView({
 
       <TrendReferencePanel trend={trend} evidenceSummary={evidenceSummary} whyNow={whyNow} />
       <PostGuidancePanel idea={idea} />
-      <PostOptionsList idea={idea} onGenerateMore={onGenerateMore} generatingMore={generatingMore} />
-
-      {briefId && briefItemId ? (
-        <div className="button-row">
-          <Link
-            to={`/ideas/${briefItemId}?brief=${briefId}&platform=${idea.platform}`}
-            className="nav-link"
-          >
-            Open full regenerate page
-          </Link>
-        </div>
-      ) : null}
+      <PostOptionsList
+        idea={idea}
+        mediaJobs={mediaJobs}
+        onGenerateMore={onGenerateMore}
+        generatingMore={generatingMore}
+      />
     </div>
   );
 }

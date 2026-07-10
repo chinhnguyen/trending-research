@@ -2,6 +2,7 @@ import type {
   BriefGenerateRequest,
   ContentIdeaGenerateRequest,
   ContentIdeaOut,
+  MediaJob,
   PersonalizedResearchRequest,
   PreferredSourcesConfig,
   PreferredSourcesConfigOut,
@@ -26,6 +27,10 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     throw new Error(text || `Request failed (${response.status})`);
   }
   return response.json() as Promise<T>;
+}
+
+export function getMediaJob(jobId: string) {
+  return request<MediaJob>(`/media-jobs/${jobId}`);
 }
 
 export function listResearch(limit = 50, offset = 0) {

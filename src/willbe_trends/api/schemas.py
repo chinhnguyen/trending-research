@@ -4,7 +4,8 @@ from typing import Literal
 from pydantic import BaseModel, Field
 
 from willbe_trends.models.briefs import ContentIdea, TrendBrief
-from willbe_trends.config import LLMProviderName, SearchProviderName, SocialPlatformName
+from willbe_trends.models.media_jobs import MediaJobStatus
+from willbe_trends.config import LLMProviderName, PostFormatName, SearchProviderName, SocialPlatformName
 from willbe_trends.models.category import TrendCategory
 from willbe_trends.models.preferences import UserPreferences
 from willbe_trends.models.prompts import PromptConfig
@@ -73,6 +74,10 @@ class BriefGenerateRequest(BaseModel):
         default="instagram",
         description="Target social network for platform-specific post review and media.",
     )
+    post_format: PostFormatName = Field(
+        default="image",
+        description="Generate a still image post or a short-form video post.",
+    )
     max_trends: int = Field(default=8, ge=1, le=12)
 
 
@@ -80,14 +85,20 @@ class ContentIdeaGenerateRequest(BaseModel):
     brief_item_id: str
     provider: LLMProviderName | None = None
     platform: SocialPlatformName = "instagram"
+    post_format: PostFormatName | None = None
+
+
+class MediaJobOut(MediaJobStatus):
+    pass
 
 
 class BriefOut(TrendBrief):
-    pass
+    active_media_jobs: list[MediaJobOut] = Field(default_factory=list)
 
 
 class ContentIdeaOut(ContentIdea):
     brief_item_id: str
+    active_media_job: MediaJobOut | None = None
 
 
 class PromptConfigOut(BaseModel):
