@@ -7,7 +7,7 @@
 | ID | Task | Owner | Status | Outcome |
 |----|------|-------|--------|---------|
 | M1.1 | Write `hypotheses.md`, `icp-persona.md` | | Not started | [specs/hypotheses.md](../../specs/hypotheses.md), [specs/icp-persona.md](../../specs/icp-persona.md) |
-| M1.2 | Desk research: competitors & substitutes | | Not started | [specs/competitor-landscape.md](../../specs/competitor-landscape.md) |
+| M1.2 | Desk research: competitors & substitutes | ChatGPT | Done | [specs/competitor-landscape.md](../../specs/competitor-landscape.md) |
 | M1.3 | Define content-generation concepts to test | | Not started | [specs/content-generation-concepts.md](../../specs/content-generation-concepts.md) |
 | M1.4 | Prepare demo script + pre-run sample reports | | Not started | [specs/demo-script.md](../../specs/demo-script.md) |
 | M1.5 | Create mock social post samples | | Not started | [samples/market-validation/mock-social-post.json](../../../../samples/market-validation/mock-social-post.json) |
