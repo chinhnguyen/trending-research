@@ -1,73 +1,111 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { generateBrief } from "../api";
+import { generateBrief, getResearch } from "../api";
+import { TrendReferencePanel } from "../components/TrendReferencePanel";
+import type { SocialPlatform, TrendSignal } from "../types";
+
+const PLATFORMS: { id: SocialPlatform; label: string; description: string }[] = [
+  {
+    id: "instagram",
+    label: "Instagram",
+    description: "Feed, carousel, or Reels.",
+  },
+  {
+    id: "tiktok",
+    label: "TikTok",
+    description: "Vertical short-form video.",
+  },
+];
 
 export function GenerateBriefPage() {
   const { reportId, trendName } = useParams<{ reportId: string; trendName: string }>();
   const decodedTrend = trendName ? decodeURIComponent(trendName) : "";
   const navigate = useNavigate();
-  const [step, setStep] = useState<"idle" | "scoring" | "generating" | "done">("idle");
+  const [platform, setPlatform] = useState<SocialPlatform>("instagram");
+  const [trend, setTrend] = useState<TrendSignal | null>(null);
+  const [reportSummary, setReportSummary] = useState("");
+  const [loadingTrend, setLoadingTrend] = useState(true);
+  const [step, setStep] = useState<"idle" | "generating" | "done">("idle");
   const [message, setMessage] = useState("");
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!reportId || !decodedTrend) return;
+    getResearch(reportId)
+      .then((detail) => {
+        setReportSummary(detail.report.summary);
+        const match = detail.report.trends.find(
+          (item) => item.name.toLowerCase() === decodedTrend.toLowerCase(),
+        );
+        setTrend(match ?? null);
+      })
+      .catch((err: Error) => setError(err.message))
+      .finally(() => setLoadingTrend(false));
+  }, [reportId, decodedTrend]);
+
+  const platformLabel = useMemo(
+    () => PLATFORMS.find((item) => item.id === platform)?.label ?? platform,
+    [platform],
+  );
 
   async function runPipeline() {
     if (!reportId || !decodedTrend) return;
     setError(null);
-    setStep("scoring");
-    setMessage(`Scoring evidence for ${decodedTrend}…`);
+    setStep("generating");
+    setMessage(`Creating your ${platformLabel} post…`);
 
     try {
-      setStep("generating");
-      setMessage("Drafting captions, hashtags, and service tie-ins…");
-      const brief = await generateBrief({ report_id: reportId, trend_name: decodedTrend });
+      const brief = await generateBrief({
+        report_id: reportId,
+        trend_name: decodedTrend,
+        platform,
+      });
       setStep("done");
-      setMessage("Post brief ready.");
       navigate(`/briefs/${brief.id}`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Post brief generation failed");
+      setError(err instanceof Error ? err.message : "Post generation failed");
       setStep("idle");
     }
   }
 
   return (
     <div className="page-stack">
-      <section className="hero">
+      <section className="hero hero-compact">
         <div className="badges">
-          <span className="badge badge-accent">post brief</span>
-          <span className="badge">trend-driven</span>
+          <span className="badge badge-accent">create post</span>
+          <span className="badge">{platformLabel}</span>
         </div>
         <h1>Create post for {decodedTrend || "trend"}</h1>
-        <p>
-          Turn this trend into salon-ready post copy: evidence, why-now context, captions,
-          hashtags, and service tie-ins.
-        </p>
+        <p>Review the trend below, then generate caption options and images for your salon.</p>
+      </section>
+
+      {loadingTrend ? (
+        <div className="loading panel panel-padding">Loading trend reference…</div>
+      ) : trend ? (
+        <TrendReferencePanel trend={trend} evidenceSummary={reportSummary} />
+      ) : (
+        <div className="panel panel-padding error-text">Trend not found in this report.</div>
+      )}
+
+      <section className="panel panel-padding">
+        <h2 className="section-title">Platform</h2>
+        <div className="platform-picker">
+          {PLATFORMS.map((option) => (
+            <button
+              key={option.id}
+              type="button"
+              className={platform === option.id ? "platform-card active" : "platform-card"}
+              onClick={() => setPlatform(option.id)}
+              disabled={step !== "idle"}
+            >
+              <strong>{option.label}</strong>
+              <p>{option.description}</p>
+            </button>
+          ))}
+        </div>
       </section>
 
       <section className="panel panel-padding pipeline-panel">
-        <div className="pipeline-steps">
-          <div className={step !== "idle" ? "step active" : "step"}>
-            <span>1</span>
-            <div>
-              <strong>Score trend</strong>
-              <p>Confidence and citation support</p>
-            </div>
-          </div>
-          <div className={step === "generating" || step === "done" ? "step active" : "step"}>
-            <span>2</span>
-            <div>
-              <strong>Draft post</strong>
-              <p>Evidence, why now, captions, hashtags</p>
-            </div>
-          </div>
-          <div className={step === "done" ? "step active" : "step"}>
-            <span>3</span>
-            <div>
-              <strong>Review and refine</strong>
-              <p>Open the brief and regenerate ideas if needed</p>
-            </div>
-          </div>
-        </div>
-
         {message ? <p className="status-message">{message}</p> : null}
         {error ? <p className="error-text">{error}</p> : null}
 
@@ -75,9 +113,9 @@ export function GenerateBriefPage() {
           <button
             className="button button-primary"
             onClick={runPipeline}
-            disabled={!reportId || !decodedTrend || step !== "idle"}
+            disabled={!reportId || !decodedTrend || !trend || step !== "idle"}
           >
-            {step === "idle" ? "Create post" : "Working…"}
+            {step === "generating" ? "Generating post options…" : `Generate ${platformLabel} post`}
           </button>
           {reportId ? (
             <Link to={`/reports/${reportId}`} className="nav-link">

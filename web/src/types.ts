@@ -107,13 +107,66 @@ export interface ProductServiceTieIn {
   rationale: string;
 }
 
+export type SocialPlatform = "instagram" | "tiktok";
+
+export interface PlatformPostReview {
+  platform: SocialPlatform;
+  content_format: string;
+  strengths: string[];
+  improvements: string[];
+  hook: string;
+  caption: string;
+  hashtags: string[];
+  posting_checklist: string[];
+  sound_strategy: string | null;
+  cover_tip: string | null;
+}
+
+export interface ImageRecommendation {
+  label: string;
+  aspect_ratio: string;
+  prompt: string;
+  hook: string | null;
+  caption: string | null;
+  hashtags: string[];
+  generated_url: string | null;
+  generation_status: string;
+  generation_provider: string | null;
+  generation_model: string | null;
+  generation_error: string | null;
+}
+
+export interface VideoScene {
+  scene_number: number;
+  duration_seconds: number | null;
+  visual_prompt: string;
+  on_screen_text: string | null;
+  voiceover: string | null;
+  generated_frame_url: string | null;
+  generation_status: string;
+  generation_provider: string | null;
+  generation_model: string | null;
+  generation_error: string | null;
+}
+
+export interface VideoRecommendation {
+  hook: string;
+  total_duration_seconds: number;
+  music_mood: string | null;
+  scenes: VideoScene[];
+}
+
 export interface ContentIdea {
   id: string;
+  platform: SocialPlatform;
   angles: string[];
   captions: BriefCaption[];
   hashtags: string[];
   posting_tip: string | null;
   product_mapping: ProductServiceTieIn | null;
+  platform_review: PlatformPostReview | null;
+  image_recommendations: ImageRecommendation[];
+  video_recommendation: VideoRecommendation | null;
   generated_at: string;
 }
 
@@ -178,12 +231,14 @@ export interface ResearchListResponse {
 export interface BriefGenerateRequest {
   report_id: string;
   trend_name?: string | null;
+  platform?: SocialPlatform;
   provider?: string | null;
   max_trends?: number;
 }
 
 export interface ContentIdeaGenerateRequest {
   brief_item_id: string;
+  platform?: SocialPlatform;
   provider?: string | null;
 }
 

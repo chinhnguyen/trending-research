@@ -12,6 +12,7 @@ from willbe_trends.db.repository import (
     get_brief_item,
     get_latest_brief_for_report,
     get_report,
+    latest_content_idea_row,
     replace_content_idea,
     save_brief,
 )
@@ -34,11 +35,23 @@ async def generate_brief(
     llm = create_provider(request.provider, settings=settings)
     if request.trend_name:
         try:
-            brief = await generate_brief_for_trend(row=row, llm=llm, trend_name=request.trend_name)
+            brief = await generate_brief_for_trend(
+                row=row,
+                llm=llm,
+                trend_name=request.trend_name,
+                platform=request.platform,
+                settings=settings,
+            )
         except ValueError as exc:
             raise HTTPException(status_code=404, detail=str(exc)) from exc
     else:
-        brief = await generate_brief_from_report(row=row, llm=llm, max_trends=request.max_trends)
+        brief = await generate_brief_from_report(
+            row=row,
+            llm=llm,
+            max_trends=request.max_trends,
+            platform=request.platform,
+            settings=settings,
+        )
     saved = save_brief(db, brief)
     return brief_to_schema(saved)
 
@@ -70,6 +83,7 @@ async def generate_content_idea(
     report = item.brief.report
     settings = get_settings()
     llm = create_provider(request.provider, settings=settings)
+    prior = _content_idea_to_schema(latest_content_idea_row(item))
     idea, _response = await regenerate_content_idea_for_item(
         llm=llm,
         item=item,
@@ -87,6 +101,9 @@ async def generate_content_idea(
         ],
         region=report.region,
         research_time=report.research_time or "",
+        platform=request.platform,
+        settings=settings,
+        prior_idea=prior,
     )
     row = replace_content_idea(db, request.brief_item_id, idea)
     content_idea = _content_idea_to_schema(row)

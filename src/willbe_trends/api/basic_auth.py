@@ -14,16 +14,19 @@ class BasicAuthMiddleware(BaseHTTPMiddleware):
         username: str,
         password: str,
         exempt_paths: frozenset[str] | None = None,
+        exempt_prefixes: frozenset[str] | None = None,
         realm: str = "Willbe Trends",
     ):
         super().__init__(app)
         self.username = username
         self.password = password
         self.exempt_paths = exempt_paths or frozenset()
+        self.exempt_prefixes = exempt_prefixes or frozenset()
         self.realm = realm
 
     async def dispatch(self, request: Request, call_next):
-        if request.url.path in self.exempt_paths:
+        path = request.url.path
+        if path in self.exempt_paths or any(path.startswith(prefix) for prefix in self.exempt_prefixes):
             return await call_next(request)
 
         if not self._is_authorized(request.headers.get("Authorization")):

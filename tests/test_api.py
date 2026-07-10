@@ -265,20 +265,73 @@ class StubBriefLLM(LLMProvider):
     name = "stub"
 
     async def complete(self, system: str, user: str) -> LLMResponse:
+        platform = "tiktok" if "tiktok" in user.lower() else "instagram"
+        content_format = "tiktok_video" if platform == "tiktok" else "instagram_reel"
+        is_regeneration = "REGENERATION REQUEST" in user
+        image_prompt = (
+            "Macro chrome nail art under moody salon lighting"
+            if is_regeneration
+            else "Salon manicure with soft chrome finish, clean background"
+        )
+        hook = (
+            "A fresh angle on chrome nails for your feed."
+            if is_regeneration
+            else "Chrome nails that catch the light instantly."
+        )
+        caption = (
+            "New caption: soft chrome, salon-perfect, book your glow-up."
+            if is_regeneration
+            else "Fresh trend, polished finish, salon-ready now."
+        )
         return LLMResponse(
-            content="""
-            {
+            content=f"""
+            {{
               "evidence_summary": "Backed by saved citations and the report summary.",
               "why_now": "The trend is timely and visible across current inspiration sources.",
               "caveats": null,
               "angles": ["Showcase the finish", "Pair with a seasonal offer", "Use a close-up reel hook"],
-              "captions": [{"locale": "en", "caption": "Fresh trend, polished finish, salon-ready now.", "cta": "Book this week"}],
+              "captions": [{{"locale": "en", "caption": "{caption}", "cta": "Book this week"}}],
               "hashtags": ["#nailtrend", "#saloninspo", "#booknow"],
               "posting_tip": "Pair the caption with your latest close-up client set.",
               "service_suggestion": "Signature chrome refresh",
               "product_suggestion": "Cuticle oil add-on",
-              "rationale": "The trend naturally supports both a service spotlight and retail upsell."
-            }
+              "rationale": "The trend naturally supports both a service spotlight and retail upsell.",
+              "platform_review": {{
+                "content_format": "{content_format}",
+                "strengths": ["Strong visual trend", "Clear service tie-in"],
+                "improvements": ["Add your own salon photo", "Keep hook under 3 seconds"],
+                "hook": "{hook}",
+                "caption": "{caption}",
+                "hashtags": ["#nailtrend", "#saloninspo"],
+                "posting_checklist": ["Use vertical 9:16", "Add location tag"],
+                "sound_strategy": "Soft trending instrumental",
+                "cover_tip": "Close-up chrome thumb frame"
+              }},
+              "image_recommendations": [
+                {{
+                  "label": "Hero shot",
+                  "aspect_ratio": "9:16",
+                  "prompt": "{image_prompt}",
+                  "hook": "{hook}",
+                  "caption": "{caption}",
+                  "hashtags": ["#nailtrend", "#saloninspo", "#booknow"]
+                }}
+              ],
+              "video_recommendation": {{
+                "hook": "Watch the chrome catch the light",
+                "total_duration_seconds": 15,
+                "music_mood": "soft trending",
+                "scenes": [
+                  {{
+                    "scene_number": 1,
+                    "duration_seconds": 3,
+                    "visual_prompt": "Close-up chrome nail under ring light",
+                    "on_screen_text": "Trending now",
+                    "voiceover": "This chrome finish is everywhere right now."
+                  }}
+                ]
+              }}
+            }}
             """,
             provider="stub",
             model="stub-model",
@@ -293,6 +346,12 @@ def test_brief_generation_and_idea_regeneration(tmp_path, monkeypatch):
     from willbe_trends.config import get_settings
     import willbe_trends.db.models as db_models
     import willbe_trends.api.routes.briefs as brief_routes
+    import willbe_trends.briefs.service as brief_service
+
+    async def _noop_enrich(idea, settings=None):
+        return idea
+
+    monkeypatch.setattr(brief_service, "enrich_content_idea_media", _noop_enrich)
 
     get_settings.cache_clear()
     db_models._engine = None
@@ -344,13 +403,20 @@ def test_brief_generation_and_idea_regeneration(tmp_path, monkeypatch):
 
     created = client.post(
         "/api/briefs/generate",
-        json={"report_id": row.id, "trend_name": "Soft Chrome"},
+        json={"report_id": row.id, "trend_name": "Soft Chrome", "platform": "instagram"},
     )
     assert created.status_code == 200
     brief = created.json()
     assert brief["report_id"] == row.id
-    assert brief["title"] == "Post brief — Soft Chrome"
+    assert brief["title"] == "Instagram post — Soft Chrome"
     assert len(brief["items"]) == 1
+    assert brief["items"][0]["content_idea"]["platform"] == "instagram"
+    assert brief["items"][0]["content_idea"]["platform_review"]["content_format"] == "instagram_reel"
+    assert len(brief["items"][0]["content_idea"]["image_recommendations"]) == 1
+    assert (
+        brief["items"][0]["content_idea"]["image_recommendations"][0]["hook"]
+        == "Chrome nails that catch the light instantly."
+    )
     assert brief["items"][0]["content_idea"]["captions"][0]["locale"] == "en"
 
     fetched = client.get(f"/api/briefs/{brief['id']}")
@@ -361,10 +427,28 @@ def test_brief_generation_and_idea_regeneration(tmp_path, monkeypatch):
     assert latest.status_code == 200
     assert latest.json()["id"] == brief["id"]
 
-    idea = client.post("/api/ideas/generate", json={"brief_item_id": brief["items"][0]["id"]})
+    idea = client.post(
+        "/api/ideas/generate",
+        json={"brief_item_id": brief["items"][0]["id"], "platform": "tiktok"},
+    )
     assert idea.status_code == 200
     assert idea.json()["brief_item_id"] == brief["items"][0]["id"]
+    assert idea.json()["platform"] == "tiktok"
+    assert idea.json()["platform_review"]["hook"] == "A fresh angle on chrome nails for your feed."
+    assert len(idea.json()["image_recommendations"]) == 2
+    assert idea.json()["image_recommendations"][0]["hook"] == "Chrome nails that catch the light instantly."
+    assert idea.json()["image_recommendations"][1]["hook"] == "A fresh angle on chrome nails for your feed."
+    assert idea.json()["image_recommendations"][1]["caption"] == (
+        "New caption: soft chrome, salon-perfect, book your glow-up."
+    )
+    assert idea.json()["video_recommendation"]["scenes"][0]["scene_number"] == 1
     assert "hashtags" in idea.json()
+
+    refetched = client.get(f"/api/briefs/{brief['id']}")
+    assert refetched.status_code == 200
+    refetched_idea = refetched.json()["items"][0]["content_idea"]
+    assert refetched_idea["platform_review"]["hook"] == "A fresh angle on chrome nails for your feed."
+    assert len(refetched_idea["image_recommendations"]) == 2
 
     get_settings.cache_clear()
     db_models._engine = None

@@ -4,7 +4,7 @@ from typing import Literal
 from pydantic import BaseModel, Field
 
 from willbe_trends.models.briefs import ContentIdea, TrendBrief
-from willbe_trends.config import LLMProviderName, SearchProviderName
+from willbe_trends.config import LLMProviderName, SearchProviderName, SocialPlatformName
 from willbe_trends.models.category import TrendCategory
 from willbe_trends.models.preferences import UserPreferences
 from willbe_trends.models.prompts import PromptConfig
@@ -69,12 +69,17 @@ class BriefGenerateRequest(BaseModel):
         description="When set, build a post brief for this trend only (primary salon workflow).",
     )
     provider: LLMProviderName | None = None
+    platform: SocialPlatformName = Field(
+        default="instagram",
+        description="Target social network for platform-specific post review and media.",
+    )
     max_trends: int = Field(default=8, ge=1, le=12)
 
 
 class ContentIdeaGenerateRequest(BaseModel):
     brief_item_id: str
     provider: LLMProviderName | None = None
+    platform: SocialPlatformName = "instagram"
 
 
 class BriefOut(TrendBrief):

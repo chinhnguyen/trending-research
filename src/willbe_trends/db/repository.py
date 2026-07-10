@@ -13,7 +13,16 @@ from willbe_trends.db.models import (
     dumps_json,
     loads_json,
 )
-from willbe_trends.models.briefs import BriefCaption, BriefItem, ContentIdea, ProductServiceTieIn, TrendBrief
+from willbe_trends.models.briefs import (
+    BriefCaption,
+    BriefItem,
+    ContentIdea,
+    ImageRecommendation,
+    PlatformPostReview,
+    ProductServiceTieIn,
+    TrendBrief,
+    VideoRecommendation,
+)
 from willbe_trends.models.preferences import UserPreferences
 from willbe_trends.models.search import WebCitation, WebResearchBundle
 from willbe_trends.models.trends import TrendCategory, TrendReport, TrendSignal
@@ -169,12 +178,27 @@ def get_report(session: Session, report_id: str) -> ResearchReportRow | None:
     )
 
 
+def latest_content_idea_row(item: BriefItemRow) -> ContentIdeaRow | None:
+    if not item.ideas:
+        return None
+    return max(item.ideas, key=lambda row: row.created_at)
+
+
 def _content_idea_to_schema(row: ContentIdeaRow | None) -> ContentIdea | None:
     if row is None:
         return None
 
+    platform_review_raw = loads_json(row.platform_review_json, {})
+    platform_review = (
+        PlatformPostReview.model_validate(platform_review_raw)
+        if platform_review_raw
+        else None
+    )
+    video_raw = loads_json(row.video_recommendation_json, None) if row.video_recommendation_json else None
+
     return ContentIdea(
         id=row.id,
+        platform=row.platform or "instagram",
         angles=loads_json(row.angles_json, []),
         captions=[BriefCaption.model_validate(item) for item in loads_json(row.captions_json, [])],
         hashtags=loads_json(row.hashtags_json, []),
@@ -188,7 +212,36 @@ def _content_idea_to_schema(row: ContentIdeaRow | None) -> ContentIdea | None:
             if row.service_suggestion and row.product_suggestion and row.rationale
             else None
         ),
+        platform_review=platform_review,
+        image_recommendations=[
+            ImageRecommendation.model_validate(item)
+            for item in loads_json(row.image_recommendations_json, [])
+        ],
+        video_recommendation=VideoRecommendation.model_validate(video_raw) if video_raw else None,
         generated_at=row.created_at,
+    )
+
+
+def _content_idea_row_from_schema(idea: ContentIdea, brief_item_id: str) -> ContentIdeaRow:
+    return ContentIdeaRow(
+        id=idea.id,
+        brief_item_id=brief_item_id,
+        angles_json=dumps_json(idea.angles),
+        captions_json=dumps_json([caption.model_dump() for caption in idea.captions]),
+        hashtags_json=dumps_json(idea.hashtags),
+        posting_tip=idea.posting_tip,
+        service_suggestion=idea.product_mapping.service_suggestion if idea.product_mapping else None,
+        product_suggestion=idea.product_mapping.product_suggestion if idea.product_mapping else None,
+        rationale=idea.product_mapping.rationale if idea.product_mapping else None,
+        platform=idea.platform,
+        platform_review_json=dumps_json(idea.platform_review.model_dump() if idea.platform_review else {}),
+        image_recommendations_json=dumps_json(
+            [item.model_dump() for item in idea.image_recommendations]
+        ),
+        video_recommendation_json=(
+            dumps_json(idea.video_recommendation.model_dump()) if idea.video_recommendation else None
+        ),
+        created_at=idea.generated_at,
     )
 
 
@@ -234,7 +287,7 @@ def brief_to_schema(row: ResearchBriefRow) -> TrendBrief:
                     image_source_url=item.image_source_url,
                     image_alt=item.image_alt,
                 ),
-                content_idea=_content_idea_to_schema(item.ideas[0] if item.ideas else None),
+                content_idea=_content_idea_to_schema(latest_content_idea_row(item)),
             )
             for item in row.items
         ],
@@ -279,31 +332,7 @@ def save_brief(session: Session, brief: TrendBrief) -> ResearchBriefRow:
             caveats=item.caveats,
         )
         if item.content_idea:
-            item_row.ideas.append(
-                ContentIdeaRow(
-                    id=item.content_idea.id,
-                    angles_json=dumps_json(item.content_idea.angles),
-                    captions_json=dumps_json([caption.model_dump() for caption in item.content_idea.captions]),
-                    hashtags_json=dumps_json(item.content_idea.hashtags),
-                    posting_tip=item.content_idea.posting_tip,
-                    service_suggestion=(
-                        item.content_idea.product_mapping.service_suggestion
-                        if item.content_idea.product_mapping
-                        else None
-                    ),
-                    product_suggestion=(
-                        item.content_idea.product_mapping.product_suggestion
-                        if item.content_idea.product_mapping
-                        else None
-                    ),
-                    rationale=(
-                        item.content_idea.product_mapping.rationale
-                        if item.content_idea.product_mapping
-                        else None
-                    ),
-                    created_at=item.content_idea.generated_at,
-                )
-            )
+            item_row.ideas.append(_content_idea_row_from_schema(item.content_idea, item.id))
         row.items.append(item_row)
 
     session.add(row)
@@ -349,18 +378,7 @@ def replace_content_idea(
     if item is None:
         raise ValueError("Brief item not found")
 
-    row = ContentIdeaRow(
-        id=idea.id,
-        brief_item_id=brief_item_id,
-        angles_json=dumps_json(idea.angles),
-        captions_json=dumps_json([caption.model_dump() for caption in idea.captions]),
-        hashtags_json=dumps_json(idea.hashtags),
-        posting_tip=idea.posting_tip,
-        service_suggestion=idea.product_mapping.service_suggestion if idea.product_mapping else None,
-        product_suggestion=idea.product_mapping.product_suggestion if idea.product_mapping else None,
-        rationale=idea.product_mapping.rationale if idea.product_mapping else None,
-        created_at=idea.generated_at,
-    )
+    row = _content_idea_row_from_schema(idea, brief_item_id)
     session.add(row)
     session.commit()
     session.refresh(row)

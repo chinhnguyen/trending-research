@@ -7,6 +7,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 LLMProviderName = Literal["openai", "anthropic", "ollama"]
 SearchProviderName = Literal["duckduckgo", "tavily"]
+SocialPlatformName = Literal["instagram", "tiktok"]
 
 
 class Settings(BaseSettings):
@@ -53,6 +54,32 @@ class Settings(BaseSettings):
         default=3,
         validation_alias="WILLBE_IMAGE_SEARCH_MAX_RESULTS",
     )
+
+    willbe_media_generation_enabled: bool = Field(
+        default=False,
+        validation_alias="WILLBE_MEDIA_GENERATION_ENABLED",
+    )
+    willbe_media_require_probe: bool = Field(
+        default=True,
+        validation_alias="WILLBE_MEDIA_REQUIRE_PROBE",
+    )
+    willbe_image_generation_provider: Literal["openai", "none"] = Field(
+        default="openai",
+        validation_alias="WILLBE_IMAGE_GENERATION_PROVIDER",
+    )
+    willbe_video_generation_provider: Literal["openai", "none"] = Field(
+        default="openai",
+        validation_alias="WILLBE_VIDEO_GENERATION_PROVIDER",
+    )
+    willbe_media_max_images_per_post: int = Field(
+        default=1,
+        validation_alias="WILLBE_MEDIA_MAX_IMAGES_PER_POST",
+    )
+    willbe_media_max_video_scenes: int = Field(
+        default=2,
+        validation_alias="WILLBE_MEDIA_MAX_VIDEO_SCENES",
+    )
+    openai_image_model: str = Field(default="gpt-image-1-mini", validation_alias="OPENAI_IMAGE_MODEL")
 
     tavily_api_key: str | None = Field(default=None, validation_alias="TAVILY_API_KEY")
 

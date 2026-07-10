@@ -74,7 +74,7 @@ Generate a ranked **trend brief** from a saved research report, then **content i
 
 | Method | Path | Description |
 |--------|------|-------------|
-| POST | `/api/briefs/generate` | Body: `{ "report_id": "<uuid>", "trend_name": "<name>" }` — post brief for one trend |
+| POST | `/api/briefs/generate` | Body: `{ "report_id", "trend_name", "platform": "instagram" \| "tiktok" }` |
 | GET | `/api/briefs/latest` | Latest brief for the current user context |
 | GET | `/api/briefs/{id}` | Brief with ranked items, evidence, why-now |
 | POST | `/api/ideas/generate` | Body: `{ "brief_item_id": "<uuid>" }` — captions, hashtags, tie-ins |
@@ -83,7 +83,7 @@ Models: `src/willbe_trends/models/briefs.py`. Service: `src/willbe_trends/briefs
 
 ### Web UI
 
-From a report (`/reports/:id`), pick a trend → **Create post** → `/briefs/generate/:reportId/:trendName` → `/briefs/:id`. Regenerate ideas: `/ideas/:briefItemId`.
+From a report (`/reports/:id`), pick a trend → choose **Instagram** or **TikTok** → **Create post** → `/briefs/generate/:reportId/:trendName` → `/briefs/:id`. Platform-specific review, AI image/video recommendations: see [social post platforms](social-post-platforms.md).
 
 ## Future extensions
 

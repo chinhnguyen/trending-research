@@ -173,6 +173,10 @@ class ContentIdeaRow(Base):
     service_suggestion: Mapped[str | None] = mapped_column(Text, nullable=True)
     product_suggestion: Mapped[str | None] = mapped_column(Text, nullable=True)
     rationale: Mapped[str | None] = mapped_column(Text, nullable=True)
+    platform: Mapped[str] = mapped_column(String(32), default="instagram")
+    platform_review_json: Mapped[str] = mapped_column(Text, default="{}")
+    image_recommendations_json: Mapped[str] = mapped_column(Text, default="[]")
+    video_recommendation_json: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         default=lambda: datetime.now(timezone.utc),
@@ -244,6 +248,19 @@ def _migrate_schema(engine) -> None:
                 if column_name not in report_columns:
                     connection.execute(
                         text(f"ALTER TABLE research_reports ADD COLUMN {column_name} {column_type}")
+                    )
+
+        if "content_ideas" in table_names:
+            idea_columns = {column["name"] for column in inspector.get_columns("content_ideas")}
+            for column_name, column_type in {
+                "platform": "TEXT DEFAULT 'instagram'",
+                "platform_review_json": "TEXT DEFAULT '{}'",
+                "image_recommendations_json": "TEXT DEFAULT '[]'",
+                "video_recommendation_json": "TEXT",
+            }.items():
+                if column_name not in idea_columns:
+                    connection.execute(
+                        text(f"ALTER TABLE content_ideas ADD COLUMN {column_name} {column_type}")
                     )
 
 

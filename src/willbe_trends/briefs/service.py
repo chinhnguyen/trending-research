@@ -3,35 +3,29 @@ import re
 import uuid
 from datetime import datetime, timezone
 
+from willbe_trends.briefs.prompts import platform_brief_system_prompt
+from willbe_trends.config import Settings, get_settings
 from willbe_trends.db.models import BriefItemRow, ResearchReportRow
-from willbe_trends.models.briefs import BriefCaption, BriefItem, ContentIdea, ProductServiceTieIn, TrendBrief
+from willbe_trends.media.service import enrich_content_idea_media
+from willbe_trends.models.briefs import (
+    BriefCaption,
+    BriefItem,
+    ContentIdea,
+    ImageRecommendation,
+    PlatformPostReview,
+    ProductServiceTieIn,
+    TrendBrief,
+    VideoRecommendation,
+    VideoScene,
+)
 from willbe_trends.models.search import WebCitation
+from willbe_trends.models.social import SocialPlatform
 from willbe_trends.models.trends import TrendSignal
 from willbe_trends.models.usage import LLMUsageStats
 from willbe_trends.llm.base import LLMProvider, LLMResponse
 
-BRIEF_ITEM_SYSTEM_PROMPT = """You are a beauty trend strategist helping salon owners turn evidence-backed trends into a short actionable brief.
-Return ONLY valid JSON with this shape:
-{
-  "evidence_summary": "2-3 sentences grounded in the supplied report and citations",
-  "why_now": "1-2 sentences explaining timing and relevance",
-  "caveats": "optional string or null",
-  "angles": ["angle 1", "angle 2", "angle 3"],
-  "captions": [
-    {"locale": "en", "caption": "string", "cta": "optional string"}
-  ],
-  "hashtags": ["#tag"],
-  "posting_tip": "short practical posting suggestion",
-  "service_suggestion": "service or offer to promote",
-  "product_suggestion": "optional retail or treatment tie-in",
-  "rationale": "why the suggestion fits this trend"
-}
-Rules:
-- Ground every claim in the provided report trend and citations.
-- Do not invent statistics or unsupported sources.
-- Keep suggestions practical for a salon social post.
-- Captions should sound warm, concise, and human.
-- Return 3-5 hashtags only."""
+BRIEF_ITEM_SYSTEM_PROMPT = platform_brief_system_prompt("instagram")
+MAX_TOTAL_POST_OPTIONS = 6
 
 
 def _extract_json_payload(text: str) -> dict:
@@ -78,11 +72,14 @@ def _brief_item_prompt(
     research_time: str,
     score: float,
     locales: list[str],
+    platform: SocialPlatform,
+    regenerate_context: str = "",
 ) -> str:
     citation_lines = "\n".join(
         f"- {citation.title}: {citation.snippet or citation.url}" for citation in citations[:5]
     )
-    return f"""Region: {region}
+    return f"""Target platform: {platform}
+Region: {region}
 Time period: {research_time}
 Brief score: {score:.2f}
 Locales: {", ".join(locales)}
@@ -101,6 +98,7 @@ Trend:
 
 Supporting citations:
 {citation_lines or "- No citations available"}
+{regenerate_context}
 """
 
 
@@ -124,16 +122,93 @@ def score_trend(trend: TrendSignal, citations: list[WebCitation]) -> float:
     return round(0.5 * confidence_score + 0.35 * evidence_score + 0.15 * richness_score, 4)
 
 
-def _idea_from_payload(payload: dict) -> tuple[str, str, str | None, ContentIdea]:
+def _platform_review_from_payload(payload: dict, platform: SocialPlatform) -> PlatformPostReview:
+    review = payload.get("platform_review") or {}
+    captions = payload.get("captions", [])
+    fallback_caption = captions[0].get("caption", "") if captions else ""
+    default_format = "tiktok_video" if platform == "tiktok" else "instagram_feed"
+    return PlatformPostReview(
+        platform=platform,
+        content_format=review.get("content_format", default_format),
+        strengths=review.get("strengths", [])[:4],
+        improvements=review.get("improvements", [])[:4],
+        hook=review.get("hook", fallback_caption[:120] or "Lead with your best nail close-up."),
+        caption=review.get("caption", fallback_caption),
+        hashtags=(review.get("hashtags") or payload.get("hashtags", []))[:10],
+        posting_checklist=review.get("posting_checklist", [])[:6],
+        sound_strategy=review.get("sound_strategy"),
+        cover_tip=review.get("cover_tip"),
+    )
+
+
+def _image_recommendations_from_payload(
+    payload: dict,
+    platform_review: PlatformPostReview | None = None,
+) -> list[ImageRecommendation]:
+    items = payload.get("image_recommendations", [])[:1]
+    if not items:
+        return []
+
+    item = items[0]
+    return [
+        ImageRecommendation(
+            label=item.get("label", "Post option"),
+            aspect_ratio=item.get("aspect_ratio", "1:1"),
+            prompt=item.get("prompt", ""),
+            hook=item.get("hook") or (platform_review.hook if platform_review else None),
+            caption=item.get("caption") or (platform_review.caption if platform_review else None),
+            hashtags=(item.get("hashtags") or (platform_review.hashtags if platform_review else []))[:10],
+        )
+    ]
+
+
+def _sync_platform_review_from_latest_option(idea: ContentIdea) -> ContentIdea:
+    if not idea.image_recommendations or idea.platform_review is None:
+        return idea
+
+    latest = idea.image_recommendations[-1]
+    return idea.model_copy(
+        update={
+            "platform_review": idea.platform_review.model_copy(
+                update={
+                    "hook": latest.hook or idea.platform_review.hook,
+                    "caption": latest.caption or idea.platform_review.caption,
+                    "hashtags": latest.hashtags or idea.platform_review.hashtags,
+                }
+            )
+        }
+    )
+
+
+def _post_option_key(image: ImageRecommendation) -> str:
+    return "|".join(
+        [
+            (image.hook or "").strip().lower(),
+            (image.caption or "").strip().lower(),
+            image.prompt.strip().lower(),
+        ]
+    )
+
+
+def _video_recommendation_from_payload(payload: dict) -> VideoRecommendation | None:
+    raw = payload.get("video_recommendation")
+    if not raw:
+        return None
+    return VideoRecommendation.model_validate(raw)
+
+
+def _idea_from_payload(payload: dict, *, platform: SocialPlatform) -> tuple[str, str, str | None, ContentIdea]:
     captions = [BriefCaption.model_validate(item) for item in payload.get("captions", [])]
     if not captions:
         captions = [BriefCaption(locale="en", caption="Show the trend with your latest salon work.")]
 
+    platform_review = _platform_review_from_payload(payload, platform)
     idea = ContentIdea(
         id=str(uuid.uuid4()),
+        platform=platform,
         angles=payload.get("angles", [])[:3],
         captions=captions,
-        hashtags=payload.get("hashtags", [])[:5],
+        hashtags=payload.get("hashtags", [])[:10],
         posting_tip=payload.get("posting_tip"),
         product_mapping=(
             ProductServiceTieIn(
@@ -144,14 +219,52 @@ def _idea_from_payload(payload: dict) -> tuple[str, str, str | None, ContentIdea
             if payload.get("service_suggestion") and payload.get("product_suggestion") and payload.get("rationale")
             else None
         ),
+        platform_review=platform_review,
+        image_recommendations=_image_recommendations_from_payload(payload, platform_review),
+        video_recommendation=_video_recommendation_from_payload(payload),
         generated_at=datetime.now(timezone.utc),
     )
+    idea = _sync_platform_review_from_latest_option(idea)
     return (
         payload.get("evidence_summary", "Grounded in the current report and saved citations.").strip(),
         payload.get("why_now", "This trend is gaining attention right now.").strip(),
         payload.get("caveats"),
         idea,
     )
+
+
+def _merge_post_options(prior: ContentIdea, new: ContentIdea) -> ContentIdea:
+    seen_keys = {_post_option_key(image) for image in prior.image_recommendations}
+    merged_images = list(prior.image_recommendations)
+    for image in new.image_recommendations[:1]:
+        key = _post_option_key(image)
+        if key in seen_keys:
+            continue
+        merged_images.append(image)
+        seen_keys.add(key)
+
+    merged = new.model_copy(update={"image_recommendations": merged_images[:MAX_TOTAL_POST_OPTIONS]})
+    return _sync_platform_review_from_latest_option(merged)
+
+
+def _regenerate_context(prior: ContentIdea | None) -> str:
+    if prior is None:
+        return ""
+    lines = [
+        "",
+        "REGENERATION REQUEST:",
+        "Add exactly one more post option with a new hook, caption, hashtags, and image prompt.",
+        "Return exactly one image_recommendation object. It will be appended to prior options.",
+        "Make the copy and visual prompt clearly different from every prior option.",
+        "Do not reuse prior wording or image prompts verbatim.",
+    ]
+    for index, image in enumerate(prior.image_recommendations, start=1):
+        lines.append(f"Prior option {index} hook: {image.hook or 'none'}")
+        lines.append(f"Prior option {index} caption: {image.caption or 'none'}")
+        if image.hashtags:
+            lines.append(f"Prior option {index} hashtags: {', '.join(image.hashtags)}")
+        lines.append(f"Prior option {index} image prompt ({image.label}): {image.prompt}")
+    return "\n".join(lines)
 
 
 async def build_brief_item(
@@ -165,9 +278,11 @@ async def build_brief_item(
     rank: int,
     score: float,
     locales: list[str],
+    platform: SocialPlatform = "instagram",
+    settings: Settings | None = None,
 ) -> tuple[BriefItem, LLMResponse]:
     response = await llm.complete(
-        system=BRIEF_ITEM_SYSTEM_PROMPT,
+        system=platform_brief_system_prompt(platform),
         user=_brief_item_prompt(
             trend=trend,
             report_summary=report_summary,
@@ -176,10 +291,12 @@ async def build_brief_item(
             research_time=research_time,
             score=score,
             locales=locales,
+            platform=platform,
         ),
     )
     payload = _extract_json_payload(response.content)
-    evidence_summary, why_now, caveats, idea = _idea_from_payload(payload)
+    evidence_summary, why_now, caveats, idea = _idea_from_payload(payload, platform=platform)
+    idea = await enrich_content_idea_media(idea, settings=settings or get_settings())
     item = BriefItem(
         id=str(uuid.uuid4()),
         rank=rank,
@@ -239,6 +356,8 @@ async def generate_brief_for_trend(
     row: ResearchReportRow,
     llm: LLMProvider,
     trend_name: str,
+    platform: SocialPlatform = "instagram",
+    settings: Settings | None = None,
 ) -> TrendBrief:
     trend_row = find_trend_in_report(row, trend_name)
     if trend_row is None:
@@ -258,12 +377,15 @@ async def generate_brief_for_trend(
         rank=1,
         score=score,
         locales=locales,
+        platform=platform,
+        settings=settings,
     )
+    platform_label = "Instagram" if platform == "instagram" else "TikTok"
     return TrendBrief(
         id=str(uuid.uuid4()),
         report_id=row.id,
-        title=f"Post brief — {trend.name}",
-        summary=f"Social post ideas for {trend.name}, grounded in the saved {row.research_time or 'current'} research.",
+        title=f"{platform_label} post — {trend.name}",
+        summary=f"{platform_label} post ideas for {trend.name}, grounded in the saved {row.research_time or 'current'} research.",
         region=row.region,
         research_time=row.research_time or "",
         generated_at=datetime.now(timezone.utc),
@@ -279,6 +401,8 @@ async def generate_brief_from_report(
     row: ResearchReportRow,
     llm: LLMProvider,
     max_trends: int = 8,
+    platform: SocialPlatform = "instagram",
+    settings: Settings | None = None,
 ) -> TrendBrief:
     citations = _report_citations(row)
     ranked_trends = sorted(
@@ -307,6 +431,8 @@ async def generate_brief_from_report(
             rank=index,
             score=score,
             locales=locales,
+            platform=platform,
+            settings=settings,
         )
         items.append(item)
         responses.append(response)
@@ -335,6 +461,9 @@ async def regenerate_content_idea_for_item(
     citations: list[WebCitation],
     region: str,
     research_time: str,
+    platform: SocialPlatform = "instagram",
+    settings: Settings | None = None,
+    prior_idea: ContentIdea | None = None,
 ) -> tuple[ContentIdea, LLMResponse]:
     trend = TrendSignal(
         name=item.trend_name,
@@ -350,7 +479,7 @@ async def regenerate_content_idea_for_item(
         image_alt=item.image_alt,
     )
     response = await llm.complete(
-        system=BRIEF_ITEM_SYSTEM_PROMPT,
+        system=platform_brief_system_prompt(platform),
         user=_brief_item_prompt(
             trend=trend,
             report_summary=report_summary,
@@ -359,8 +488,13 @@ async def regenerate_content_idea_for_item(
             research_time=research_time,
             score=item.score,
             locales=_locale_candidates(region),
+            platform=platform,
+            regenerate_context=_regenerate_context(prior_idea),
         ),
     )
     payload = _extract_json_payload(response.content)
-    _, _, _, idea = _idea_from_payload(payload)
+    _, _, _, idea = _idea_from_payload(payload, platform=platform)
+    if prior_idea is not None:
+        idea = _merge_post_options(prior_idea, idea)
+    idea = await enrich_content_idea_media(idea, settings=settings or get_settings())
     return idea, response

@@ -15,7 +15,7 @@ from willbe_trends.models.preferences import UserPreferences
 from willbe_trends.models.trends import TrendCategory, TrendReport
 from willbe_trends.research.neutral import research_neutral_trends
 from willbe_trends.research.personalized import research_personalized_trends
-from willbe_trends.search.registry import list_search_providers
+from willbe_trends.media.diagnostics import mark_image_probe_passed, run_image_generation_test
 
 load_dotenv()
 
@@ -252,6 +252,55 @@ def validate_preferences_cmd(
     """Validate a user preferences JSON file."""
     data = UserPreferences.model_validate_json(preferences.read_text())
     console.print(json.dumps(data.model_dump(mode="json"), indent=2))
+
+
+@app.command("test-image-gen")
+def test_image_gen_cmd(
+    enable: Annotated[
+        bool,
+        typer.Option(
+            "--enable/--no-enable",
+            help="After a successful probe, allow image generation in post briefs.",
+        ),
+    ] = False,
+    prompt: Annotated[
+        str,
+        typer.Option(help="Test prompt for image generation"),
+    ] = "Close-up salon manicure with soft chrome finish, neutral background.",
+) -> None:
+    """Verify OpenAI GPT Image generation before enabling it in post briefs."""
+    settings = get_settings()
+    if not settings.openai_api_key:
+        raise typer.BadParameter("OPENAI_API_KEY is required. Add it to .env and retry.")
+
+    console.print(
+        Panel(
+            f"Model preference: {settings.openai_image_model}\n"
+            f"Probe required: {settings.willbe_media_require_probe}\n"
+            f"Media enabled: {settings.willbe_media_generation_enabled}",
+            title="Image generation probe",
+        )
+    )
+
+    result = asyncio.run(run_image_generation_test(settings=settings, prompt=prompt))
+    if result.status != "generated" or not result.url:
+        console.print(f"[red]FAILED[/red] {result.error or 'No image returned.'}")
+        raise typer.Exit(code=1)
+
+    preview = result.url[:80] + "…" if len(result.url) > 80 else result.url
+    console.print(f"[green]OK[/green] model={result.model}")
+    console.print(f"Image data: {preview}")
+
+    if enable or settings.willbe_media_generation_enabled:
+        path = mark_image_probe_passed(settings)
+        console.print(
+            f"Probe recorded at {path}. Post briefs will now generate AI images "
+            "(no extra env needed after probe; set WILLBE_MEDIA_GENERATION_ENABLED=true to require explicit enable in prod)."
+        )
+    else:
+        console.print(
+            "Re-run with --enable after verifying output to allow images in post briefs."
+        )
 
 
 if __name__ == "__main__":
