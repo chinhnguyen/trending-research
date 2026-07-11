@@ -265,6 +265,35 @@ class StubBriefLLM(LLMProvider):
     name = "stub"
 
     async def complete(self, system: str, user: str) -> LLMResponse:
+        if "Return a fresh hook" in user:
+            return LLMResponse(
+                content='{"hook": "Reloaded hook for your salon feed."}',
+                provider="stub",
+                model="stub-model",
+                usage=LLMUsageStats(prompt_tokens=20, completion_tokens=10, total_tokens=30, estimated_cost_usd=0),
+            )
+        if "Return a fresh caption" in user:
+            return LLMResponse(
+                content='{"caption": "Reloaded caption with a fresh salon angle."}',
+                provider="stub",
+                model="stub-model",
+                usage=LLMUsageStats(prompt_tokens=20, completion_tokens=10, total_tokens=30, estimated_cost_usd=0),
+            )
+        if "Return a fresh hashtags" in user:
+            return LLMResponse(
+                content='{"hashtags": ["#freshnails", "#chromeglow", "#booknow"]}',
+                provider="stub",
+                model="stub-model",
+                usage=LLMUsageStats(prompt_tokens=20, completion_tokens=10, total_tokens=30, estimated_cost_usd=0),
+            )
+        if "generation prompt as JSON" in user:
+            return LLMResponse(
+                content='{"prompt": "Reloaded salon chrome nail macro shot under ring light"}',
+                provider="stub",
+                model="stub-model",
+                usage=LLMUsageStats(prompt_tokens=20, completion_tokens=10, total_tokens=30, estimated_cost_usd=0),
+            )
+
         platform = "tiktok" if "tiktok" in user.lower() else "instagram"
         content_format = "tiktok_video" if platform == "tiktok" else "instagram_reel"
         is_regeneration = "REGENERATION REQUEST" in user
@@ -405,14 +434,6 @@ def test_brief_generation_and_idea_regeneration(tmp_path, monkeypatch):
     from willbe_trends.config import get_settings
     import willbe_trends.db.models as db_models
     import willbe_trends.api.routes.briefs as brief_routes
-    monkeypatch.setattr(
-        "willbe_trends.api.brief_helpers.schedule_media_job_for_idea",
-        lambda *args, **kwargs: None,
-    )
-    monkeypatch.setattr(
-        "willbe_trends.api.routes.briefs.schedule_media_job_for_idea",
-        lambda *args, **kwargs: None,
-    )
 
     get_settings.cache_clear()
     db_models._engine = None
@@ -475,6 +496,10 @@ def test_brief_generation_and_idea_regeneration(tmp_path, monkeypatch):
     assert brief["items"][0]["content_idea"]["platform_review"]["content_format"] == "instagram_reel"
     assert len(brief["items"][0]["content_idea"]["image_recommendations"]) == 1
     assert (
+        brief["items"][0]["content_idea"]["image_recommendations"][0]["generation_status"]
+        == "prompt_only"
+    )
+    assert (
         brief["items"][0]["content_idea"]["image_recommendations"][0]["hook"]
         == "Chrome nails that catch the light instantly."
     )
@@ -493,6 +518,7 @@ def test_brief_generation_and_idea_regeneration(tmp_path, monkeypatch):
         json={"brief_item_id": brief["items"][0]["id"], "platform": "tiktok"},
     )
     assert idea.status_code == 200
+    assert idea.json()["active_media_job"] is None
     assert idea.json()["brief_item_id"] == brief["items"][0]["id"]
     assert idea.json()["platform"] == "tiktok"
     assert idea.json()["platform_review"]["hook"] == "A fresh angle on chrome nails for your feed."
@@ -502,6 +528,7 @@ def test_brief_generation_and_idea_regeneration(tmp_path, monkeypatch):
     assert idea.json()["image_recommendations"][1]["caption"] == (
         "New caption: soft chrome, salon-perfect, book your glow-up."
     )
+    assert idea.json()["image_recommendations"][1]["generation_status"] == "prompt_only"
     assert idea.json()["video_recommendation"]["scenes"][0]["scene_number"] == 1
     assert "hashtags" in idea.json()
 
@@ -523,14 +550,6 @@ def test_video_brief_generation(tmp_path, monkeypatch):
     from willbe_trends.config import get_settings
     import willbe_trends.db.models as db_models
     import willbe_trends.api.routes.briefs as brief_routes_module
-    monkeypatch.setattr(
-        "willbe_trends.api.brief_helpers.schedule_media_job_for_idea",
-        lambda *args, **kwargs: None,
-    )
-    monkeypatch.setattr(
-        "willbe_trends.api.routes.briefs.schedule_media_job_for_idea",
-        lambda *args, **kwargs: None,
-    )
     get_settings.cache_clear()
     db_models._engine = None
     db_models._session_factory = None
@@ -587,7 +606,269 @@ def test_video_brief_generation(tmp_path, monkeypatch):
     assert idea["post_format"] == "video"
     assert len(idea["video_recommendations"]) == 1
     assert idea["image_recommendations"] == []
+    assert idea["video_recommendations"][0]["generation_status"] == "prompt_only"
     assert idea["video_recommendations"][0]["aspect_ratio"] == "9:16"
+
+    get_settings.cache_clear()
+    db_models._engine = None
+    db_models._session_factory = None
+
+
+def test_init_brief_shell_and_mixed_option_generation(tmp_path, monkeypatch):
+    db_path = tmp_path / "init-test.db"
+    monkeypatch.setenv("WILLBE_DATABASE_URL", f"sqlite:///{db_path}")
+
+    from willbe_trends.config import get_settings
+    import willbe_trends.db.models as db_models
+    import willbe_trends.api.routes.briefs as brief_routes
+
+    get_settings.cache_clear()
+    db_models._engine = None
+    db_models._session_factory = None
+    db_models.init_db()
+    session = db_models.SessionLocal()
+
+    report = TrendReport(
+        category=TrendCategory.NAILS,
+        mode="neutral",
+        research_time="July 2026",
+        summary="Chrome and sheer finishes are leading the month.",
+        trends=[
+            TrendSignal(
+                name="Soft Chrome",
+                description="Milky bases with reflective chrome finishes.",
+                popularity="rising",
+                colors=["milky white", "silver"],
+                techniques=["chrome powder"],
+                tags=["clean girl"],
+                confidence=0.86,
+                source_hint="Allure",
+            )
+        ],
+        generated_at="2026-07-04T12:00:00+00:00",
+        llm_provider="openai",
+        llm_model="gpt-4o-mini",
+        web_research=WebResearchBundle(
+            search_provider="duckduckgo",
+            queries=["chrome nails july 2026"],
+            citations=[],
+        ),
+    )
+    row = save_report(session, report, region="finland", web_search_enabled=True)
+    session.close()
+
+    monkeypatch.setattr(brief_routes, "create_provider", lambda provider=None, settings=None: StubBriefLLM())
+    client = TestClient(create_app())
+
+    created = client.post(
+        "/api/briefs/init",
+        json={"report_id": row.id, "trend_name": "Soft Chrome"},
+    )
+    assert created.status_code == 200
+    brief = created.json()
+    assert brief["items"][0]["content_idea"] is None
+    assert "Create post" in brief["title"]
+
+    item_id = brief["items"][0]["id"]
+
+    first = client.post(
+        "/api/ideas/generate",
+        json={"brief_item_id": item_id, "platform": "instagram", "post_format": "image"},
+    )
+    assert first.status_code == 200
+    assert len(first.json()["image_recommendations"]) == 1
+    assert first.json()["image_recommendations"][0]["platform"] == "instagram"
+    assert first.json()["image_recommendations"][0]["sequence"] == 1
+    assert first.json()["image_recommendations"][0]["generation_status"] == "prompt_only"
+    assert first.json()["active_media_job"] is None
+
+    second = client.post(
+        "/api/ideas/generate",
+        json={"brief_item_id": item_id, "platform": "tiktok", "post_format": "video"},
+    )
+    assert second.status_code == 200
+    body = second.json()
+    assert len(body["image_recommendations"]) == 1
+    assert len(body["video_recommendations"]) == 1
+    assert body["image_recommendations"][0]["sequence"] == 1
+    assert body["video_recommendations"][0]["sequence"] == 2
+    assert body["video_recommendations"][0]["platform"] == "tiktok"
+    assert body["video_recommendations"][0]["generation_status"] == "prompt_only"
+
+    get_settings.cache_clear()
+    db_models._engine = None
+    db_models._session_factory = None
+
+
+def test_media_prompt_accept_schedules_job(tmp_path, monkeypatch):
+    db_path = tmp_path / "prompt-test.db"
+    monkeypatch.setenv("WILLBE_DATABASE_URL", f"sqlite:///{db_path}")
+
+    from willbe_trends.config import get_settings
+    import willbe_trends.db.models as db_models
+    import willbe_trends.api.routes.briefs as brief_routes
+    import willbe_trends.api.routes.media_prompts as media_prompt_routes
+    from datetime import datetime, timezone
+    from willbe_trends.models.media_jobs import MediaJobStatus
+
+    scheduled: list[tuple[str, int]] = []
+    now = datetime.now(timezone.utc)
+
+    def fake_schedule(*args, **kwargs):
+        scheduled.append((kwargs["target_kind"], kwargs["target_sequence"]))
+        return MediaJobStatus(
+            id="job-1",
+            status="queued",
+            stage="Waiting to start…",
+            progress_percent=0,
+            error_message=None,
+            brief_id=kwargs["brief_id"],
+            brief_item_id=kwargs["brief_item_id"],
+            content_idea_id=kwargs["content_idea"].id,
+            target_kind=kwargs["target_kind"],
+            target_sequence=kwargs["target_sequence"],
+            created_at=now,
+            updated_at=now,
+            completed_at=None,
+        )
+
+    monkeypatch.setattr(media_prompt_routes, "schedule_media_job_for_option", fake_schedule)
+
+    get_settings.cache_clear()
+    db_models._engine = None
+    db_models._session_factory = None
+    db_models.init_db()
+    session = db_models.SessionLocal()
+
+    report = TrendReport(
+        category=TrendCategory.NAILS,
+        mode="neutral",
+        research_time="July 2026",
+        summary="Chrome and sheer finishes are leading the month.",
+        trends=[
+            TrendSignal(
+                name="Soft Chrome",
+                description="Milky bases with reflective chrome finishes.",
+                popularity="rising",
+            )
+        ],
+        generated_at="2026-07-04T12:00:00+00:00",
+        llm_provider="openai",
+        llm_model="gpt-4o-mini",
+        web_research=WebResearchBundle(
+            search_provider="duckduckgo",
+            queries=["chrome nails july 2026"],
+            citations=[],
+        ),
+    )
+    row = save_report(session, report, region="finland", web_search_enabled=True)
+    session.close()
+
+    monkeypatch.setattr(brief_routes, "create_provider", lambda provider=None, settings=None: StubBriefLLM())
+    client = TestClient(create_app())
+
+    created = client.post(
+        "/api/briefs/init",
+        json={"report_id": row.id, "trend_name": "Soft Chrome"},
+    )
+    item_id = created.json()["items"][0]["id"]
+    idea = client.post(
+        "/api/ideas/generate",
+        json={"brief_item_id": item_id, "platform": "instagram", "post_format": "image"},
+    )
+    content_idea_id = idea.json()["id"]
+    sequence = idea.json()["image_recommendations"][0]["sequence"]
+
+    accepted = client.post(
+        "/api/media-prompts/accept",
+        json={"content_idea_id": content_idea_id, "kind": "image", "sequence": sequence},
+    )
+    assert accepted.status_code == 200
+    assert accepted.json()["image_recommendations"][0]["generation_status"] == "generating"
+    assert accepted.json()["active_media_job"]["status"] == "queued"
+    assert scheduled == [("image", sequence)]
+
+    get_settings.cache_clear()
+    db_models._engine = None
+    db_models._session_factory = None
+
+
+def test_media_prompt_regenerate_copy_fields(tmp_path, monkeypatch):
+    db_path = tmp_path / "copy-regen-test.db"
+    monkeypatch.setenv("WILLBE_DATABASE_URL", f"sqlite:///{db_path}")
+
+    from willbe_trends.config import get_settings
+    import willbe_trends.db.models as db_models
+    import willbe_trends.api.routes.briefs as brief_routes
+    import willbe_trends.api.routes.media_prompts as media_prompt_routes
+
+    get_settings.cache_clear()
+    db_models._engine = None
+    db_models._session_factory = None
+    db_models.init_db()
+    session = db_models.SessionLocal()
+
+    report = TrendReport(
+        category=TrendCategory.NAILS,
+        mode="neutral",
+        research_time="July 2026",
+        summary="Chrome and sheer finishes are leading the month.",
+        trends=[
+            TrendSignal(
+                name="Soft Chrome",
+                description="Milky bases with reflective chrome finishes.",
+                popularity="rising",
+            )
+        ],
+        generated_at="2026-07-04T12:00:00+00:00",
+        llm_provider="openai",
+        llm_model="gpt-4o-mini",
+        web_research=WebResearchBundle(
+            search_provider="duckduckgo",
+            queries=["chrome nails july 2026"],
+            citations=[],
+        ),
+    )
+    row = save_report(session, report, region="finland", web_search_enabled=True)
+    session.close()
+
+    stub = StubBriefLLM()
+    monkeypatch.setattr(brief_routes, "create_provider", lambda provider=None, settings=None: stub)
+    monkeypatch.setattr(media_prompt_routes, "create_provider", lambda provider=None, settings=None: stub)
+    client = TestClient(create_app())
+
+    created = client.post(
+        "/api/briefs/init",
+        json={"report_id": row.id, "trend_name": "Soft Chrome"},
+    )
+    item_id = created.json()["items"][0]["id"]
+    idea = client.post(
+        "/api/ideas/generate",
+        json={"brief_item_id": item_id, "platform": "instagram", "post_format": "image"},
+    )
+    content_idea_id = idea.json()["id"]
+    sequence = idea.json()["image_recommendations"][0]["sequence"]
+
+    hook = client.post(
+        "/api/media-prompts/regenerate",
+        json={"content_idea_id": content_idea_id, "kind": "image", "sequence": sequence, "field": "hook"},
+    )
+    assert hook.status_code == 200
+    assert hook.json()["image_recommendations"][0]["hook"] == "Reloaded hook for your salon feed."
+
+    caption = client.post(
+        "/api/media-prompts/regenerate",
+        json={"content_idea_id": content_idea_id, "kind": "image", "sequence": sequence, "field": "caption"},
+    )
+    assert caption.status_code == 200
+    assert caption.json()["image_recommendations"][0]["caption"] == "Reloaded caption with a fresh salon angle."
+
+    hashtags = client.post(
+        "/api/media-prompts/regenerate",
+        json={"content_idea_id": content_idea_id, "kind": "image", "sequence": sequence, "field": "hashtags"},
+    )
+    assert hashtags.status_code == 200
+    assert hashtags.json()["image_recommendations"][0]["hashtags"] == ["#freshnails", "#chromeglow", "#booknow"]
 
     get_settings.cache_clear()
     db_models._engine = None

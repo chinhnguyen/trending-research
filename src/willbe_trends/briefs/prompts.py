@@ -143,3 +143,34 @@ Rules:
 - Image and video prompts must describe salon nail art — never faces without consent.
 - {media_rule}
 - platform_review should mirror that same variant for strengths, improvements, and checklist."""
+
+
+def media_prompt_regenerate_system_prompt(kind: str) -> str:
+    media_label = "short vertical salon nail video" if kind == "video" else "salon nail still image"
+    return f"""You rewrite AI media prompts for beauty salon social posts.
+Return ONLY valid JSON:
+{{
+  "prompt": "detailed generation prompt for a {media_label}"
+}}
+Rules:
+- Ground the visual in the supplied trend, hook, and caption.
+- Describe nail art, hands, salon lighting, and composition — avoid identifiable faces.
+- Keep prompts concrete and production-ready for an image or video model.
+- Do not return markdown or commentary."""
+
+
+def media_copy_regenerate_system_prompt(field: str, *, platform: str) -> str:
+    shapes = {
+        "hook": '{"hook": "opening line or first-frame hook"}',
+        "caption": '{"caption": "platform-ready caption"}',
+        "hashtags": '{"hashtags": ["#tag"]}',
+    }
+    shape = shapes[field]
+    return f"""You rewrite one part of a salon social post for {platform}.
+Return ONLY valid JSON:
+{shape}
+Rules:
+- Ground the copy in the supplied trend and post context.
+- Sound warm, concise, and human — like a real salon owner posting.
+- For hashtags, return 3-6 discovery-friendly tags with # prefix.
+- Do not return markdown or commentary."""

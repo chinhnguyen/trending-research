@@ -204,6 +204,8 @@ class MediaGenerationJobRow(Base):
     status: Mapped[str] = mapped_column(String(32), default="queued", index=True)
     stage: Mapped[str] = mapped_column(Text, default="")
     progress_percent: Mapped[int] = mapped_column(Integer, default=0)
+    target_kind: Mapped[str | None] = mapped_column(String(16), nullable=True)
+    target_sequence: Mapped[int | None] = mapped_column(Integer, nullable=True)
     error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
@@ -295,6 +297,17 @@ def _migrate_schema(engine) -> None:
                 if column_name not in idea_columns:
                     connection.execute(
                         text(f"ALTER TABLE content_ideas ADD COLUMN {column_name} {column_type}")
+                    )
+
+        if "media_generation_jobs" in table_names:
+            job_columns = {column["name"] for column in inspector.get_columns("media_generation_jobs")}
+            for column_name, column_type in {
+                "target_kind": "TEXT",
+                "target_sequence": "INTEGER",
+            }.items():
+                if column_name not in job_columns:
+                    connection.execute(
+                        text(f"ALTER TABLE media_generation_jobs ADD COLUMN {column_name} {column_type}")
                     )
 
 

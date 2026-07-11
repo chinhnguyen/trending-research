@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { getMediaJob } from "../api";
 import type { MediaJob, MediaJobStatus } from "../types";
 
-const TERMINAL_STATUSES = new Set<MediaJobStatus>(["completed", "failed", "skipped"]);
+const TERMINAL_STATUSES = new Set<MediaJobStatus>(["completed", "failed", "skipped", "cancelled"]);
 const POLL_INTERVAL_MS = 2000;
 
 export function useMediaJobPolling(jobIds: string[], onRefresh?: () => void | Promise<void>) {

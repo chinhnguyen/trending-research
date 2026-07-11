@@ -1,3 +1,5 @@
+from typing import Literal
+
 from willbe_trends.config import Settings, get_settings
 from willbe_trends.media.diagnostics import is_image_generation_allowed
 from willbe_trends.media.progress import ProgressCallback, report_progress
@@ -15,43 +17,100 @@ async def enrich_content_idea_media(
     *,
     settings: Settings | None = None,
     on_progress: ProgressCallback | None = None,
+    target_kind: Literal["image", "video"] | None = None,
+    target_sequence: int | None = None,
 ) -> ContentIdea:
     resolved = settings or get_settings()
     if not is_image_generation_allowed(resolved):
         await report_progress(on_progress, "Media generation is not configured", 100)
         return idea
 
-    if idea.post_format == "video":
-        return await _enrich_video_options(idea, settings=resolved, on_progress=on_progress)
+    if target_kind in (None, "image"):
+        idea = await _enrich_image_recommendations(
+            idea,
+            settings=resolved,
+            on_progress=on_progress,
+            target_sequence=target_sequence if target_kind == "image" else None,
+        )
+    if target_kind in (None, "video"):
+        idea = await _enrich_video_recommendations(
+            idea,
+            settings=resolved,
+            on_progress=on_progress,
+            target_sequence=target_sequence if target_kind == "video" else None,
+        )
 
-    image_generator = create_image_generator(resolved)
-    video_generator = create_video_generator(resolved)
-    if image_generator is None and video_generator is None:
-        await report_progress(on_progress, "No media generator available", 100)
+    if target_kind is not None:
+        await report_progress(on_progress, "Media ready", 100)
         return idea
 
-    await report_progress(on_progress, "Generating images…", 15)
+    video_generator = create_video_generator(resolved)
+    updated_storyboard = idea.video_recommendation
+    if updated_storyboard and video_generator:
+        updated_scenes: list[VideoScene] = []
+        for index, scene in enumerate(updated_storyboard.scenes):
+            if index >= resolved.willbe_media_max_video_scenes:
+                updated_scenes.append(scene)
+                continue
+            result = await video_generator.generate_scene_frame(scene=scene)
+            stored_frame = persist_generated_image(result.url)
+            updated_scenes.append(
+                scene.model_copy(
+                    update={
+                        "generated_frame_url": stored_frame,
+                        "generation_status": "generated" if stored_frame else result.status,
+                        "generation_provider": result.provider,
+                        "generation_model": result.model,
+                        "generation_error": result.error,
+                    }
+                )
+            )
+        updated_storyboard = updated_storyboard.model_copy(update={"scenes": updated_scenes})
+        idea = idea.model_copy(update={"video_recommendation": updated_storyboard})
+
+    await report_progress(on_progress, "Media ready", 100)
+    return idea
+
+
+async def _enrich_image_recommendations(
+    idea: ContentIdea,
+    *,
+    settings: Settings,
+    on_progress: ProgressCallback | None = None,
+    target_sequence: int | None = None,
+) -> ContentIdea:
+    image_generator = create_image_generator(settings)
+    if image_generator is None or not idea.image_recommendations:
+        return idea
+
+    pending = [
+        item
+        for item in idea.image_recommendations
+        if not item.generated_url and item.generation_status == "generating"
+        and (target_sequence is None or item.sequence == target_sequence)
+    ]
+    if not pending:
+        return idea
+
+    await report_progress(on_progress, "Generating image…", 15)
     updated_images: list[ImageRecommendation] = []
     new_generations = 0
-    pending = [
-        recommendation
-        for recommendation in idea.image_recommendations
-        if not recommendation.generated_url
-    ]
-    for index, recommendation in enumerate(idea.image_recommendations):
+    for recommendation in idea.image_recommendations:
         if recommendation.generated_url:
             updated_images.append(recommendation)
             continue
-        if (
-            image_generator is None
-            or new_generations >= resolved.willbe_media_max_images_per_post
-        ):
+        if recommendation.generation_status != "generating":
+            updated_images.append(recommendation)
+            continue
+        if target_sequence is not None and recommendation.sequence != target_sequence:
+            updated_images.append(recommendation)
+            continue
+        if new_generations >= settings.willbe_media_max_images_per_post:
             updated_images.append(recommendation)
             continue
         new_generations += 1
-        if pending:
-            percent = 20 + int(new_generations / max(len(pending), 1) * 60)
-            await report_progress(on_progress, "Generating image…", percent)
+        percent = 20 + int(new_generations / max(len(pending), 1) * 60)
+        await report_progress(on_progress, "Generating image…", percent)
         result = await image_generator.generate(
             prompt=recommendation.prompt,
             aspect_ratio=recommendation.aspect_ratio,
@@ -69,46 +128,27 @@ async def enrich_content_idea_media(
             )
         )
 
-    updated_video = idea.video_recommendation
-    if updated_video and video_generator:
-        updated_scenes: list[VideoScene] = []
-        for index, scene in enumerate(updated_video.scenes):
-            if index >= resolved.willbe_media_max_video_scenes:
-                updated_scenes.append(scene)
-                continue
-            result = await video_generator.generate_scene_frame(scene=scene)
-            stored_frame = persist_generated_image(result.url)
-            updated_scenes.append(
-                scene.model_copy(
-                    update={
-                        "generated_frame_url": stored_frame,
-                        "generation_status": "generated" if stored_frame else result.status,
-                        "generation_provider": result.provider,
-                        "generation_model": result.model,
-                        "generation_error": result.error,
-                    }
-                )
-            )
-        updated_video = updated_video.model_copy(update={"scenes": updated_scenes})
-
-    await report_progress(on_progress, "Images ready", 100)
-    return idea.model_copy(
-        update={
-            "image_recommendations": updated_images,
-            "video_recommendation": updated_video,
-        }
-    )
+    return idea.model_copy(update={"image_recommendations": updated_images})
 
 
-async def _enrich_video_options(
+async def _enrich_video_recommendations(
     idea: ContentIdea,
     *,
     settings: Settings,
     on_progress: ProgressCallback | None = None,
+    target_sequence: int | None = None,
 ) -> ContentIdea:
     video_generator = create_short_video_generator(settings)
-    if video_generator is None:
-        await report_progress(on_progress, "No video generator available", 100)
+    if video_generator is None or not idea.video_recommendations:
+        return idea
+
+    pending = [
+        item
+        for item in idea.video_recommendations
+        if not item.generated_url and item.generation_status == "generating"
+        and (target_sequence is None or item.sequence == target_sequence)
+    ]
+    if not pending:
         return idea
 
     await report_progress(on_progress, "Starting video render…", 10)
@@ -116,6 +156,12 @@ async def _enrich_video_options(
     new_generations = 0
     for recommendation in idea.video_recommendations:
         if recommendation.generated_url:
+            updated_videos.append(recommendation)
+            continue
+        if recommendation.generation_status != "generating":
+            updated_videos.append(recommendation)
+            continue
+        if target_sequence is not None and recommendation.sequence != target_sequence:
             updated_videos.append(recommendation)
             continue
         if new_generations >= settings.willbe_media_max_videos_per_post:
@@ -146,5 +192,4 @@ async def _enrich_video_options(
             )
         )
 
-    await report_progress(on_progress, "Video ready", 100)
     return idea.model_copy(update={"video_recommendations": updated_videos})

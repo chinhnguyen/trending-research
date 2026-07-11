@@ -1,12 +1,9 @@
-import type { ContentIdea, MediaJob, PostFormat, SocialPlatform, TrendSignal } from "../types";
 import { PostGuidancePanel } from "./PostGuidancePanel";
-import { PostOptionsList } from "./PostOptionsList";
+import { PostOptionsList, type MediaPromptTarget, type OptionDraft } from "./PostOptionsList";
 import { TrendReferencePanel } from "./TrendReferencePanel";
-
-const PLATFORM_LABELS: Record<SocialPlatform, string> = {
-  instagram: "Instagram",
-  tiktok: "TikTok",
-};
+import type { RegenerateField } from "../api";
+import type { TrendSignal, ContentIdea, MediaJob as MediaJobType, PostFormat, SocialPlatform } from "../types";
+import type { PostSetup } from "./PostSetupPicker";
 
 export function PostComposerView({
   trend,
@@ -14,33 +11,47 @@ export function PostComposerView({
   whyNow,
   idea,
   mediaJobs,
-  onGenerateMore,
-  generatingMore,
+  contentIdeaId,
+  onGenerate,
+  generating,
+  mediaGenerating,
+  promptBusyKey,
+  regeneratingField,
+  onAcceptPrompt,
+  onRegeneratePrompt,
 }: {
   trend: TrendSignal;
   evidenceSummary?: string;
   whyNow?: string;
-  idea: ContentIdea;
-  mediaJobs?: MediaJob[];
-  onGenerateMore?: (setup: { platform: SocialPlatform; postFormat: PostFormat }) => void;
-  generatingMore?: boolean;
+  idea: ContentIdea | null;
+  mediaJobs?: MediaJobType[];
+  contentIdeaId?: string | null;
+  onGenerate?: (setup: PostSetup) => void;
+  generating?: boolean;
+  mediaGenerating?: boolean;
+  promptBusyKey?: string | null;
+  regeneratingField?: RegenerateField | null;
+  onAcceptPrompt?: (target: MediaPromptTarget, draft: OptionDraft) => void | Promise<void>;
+  onRegeneratePrompt?: (target: MediaPromptTarget, field: RegenerateField) => void | Promise<void>;
 }) {
-  const review = idea.platform_review;
+  const hasOptions =
+    (idea?.image_recommendations.length ?? 0) + (idea?.video_recommendations.length ?? 0) > 0;
 
   return (
     <div className="post-composer">
-      <div className="badges" style={{ marginBottom: 4 }}>
-        <span className="badge badge-accent">{PLATFORM_LABELS[idea.platform]}</span>
-        {review ? <span className="badge">{review.content_format.replace(/_/g, " ")}</span> : null}
-      </div>
-
       <TrendReferencePanel trend={trend} evidenceSummary={evidenceSummary} whyNow={whyNow} />
-      <PostGuidancePanel idea={idea} />
+      {idea && hasOptions ? <PostGuidancePanel idea={idea} /> : null}
       <PostOptionsList
         idea={idea}
+        contentIdeaId={contentIdeaId}
         mediaJobs={mediaJobs}
-        onGenerateMore={onGenerateMore}
-        generatingMore={generatingMore}
+        onGenerate={onGenerate}
+        generating={generating}
+        mediaGenerating={mediaGenerating}
+        promptBusyKey={promptBusyKey}
+        regeneratingField={regeneratingField}
+        onAcceptPrompt={onAcceptPrompt}
+        onRegeneratePrompt={onRegeneratePrompt}
       />
     </div>
   );

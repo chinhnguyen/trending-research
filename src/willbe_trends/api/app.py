@@ -9,7 +9,7 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
 from willbe_trends.api.basic_auth import BasicAuthMiddleware
-from willbe_trends.api.routes import briefs, media, media_jobs, prompts, research, sources
+from willbe_trends.api.routes import briefs, media, media_jobs, media_prompts, prompts, research, sources
 from willbe_trends.config import get_settings
 from willbe_trends.db.models import init_db
 from willbe_trends.media.jobs import resume_pending_media_jobs
@@ -64,6 +64,7 @@ def create_app() -> FastAPI:
     app.include_router(research.router, prefix="/api")
     app.include_router(briefs.router, prefix="/api")
     app.include_router(media_jobs.router, prefix="/api")
+    app.include_router(media_prompts.router, prefix="/api")
     app.include_router(media.router, prefix="/api")
     app.include_router(prompts.router, prefix="/api")
     app.include_router(sources.router, prefix="/api")

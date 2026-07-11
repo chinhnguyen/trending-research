@@ -13,6 +13,14 @@ export function formatHashtags(tags: string[]): string {
   return tags.join(" ");
 }
 
+export function parseHashtags(text: string): string[] {
+  return text
+    .split(/[\n,]+/)
+    .map((tag) => tag.trim())
+    .filter(Boolean)
+    .map((tag) => (tag.startsWith("#") ? tag : `#${tag}`));
+}
+
 export async function copyPostBundle(caption: string, hashtags: string[]): Promise<void> {
   const text = hashtags.length > 0 ? `${caption}\n\n${formatHashtags(hashtags)}` : caption;
   await navigator.clipboard.writeText(text);

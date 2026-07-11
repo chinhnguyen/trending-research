@@ -12,6 +12,8 @@ function statusLabel(status: MediaJob["status"]) {
       return "Failed";
     case "skipped":
       return "Skipped";
+    case "cancelled":
+      return "Cancelled";
     default:
       return status;
   }
@@ -44,15 +46,36 @@ export function OptionMediaProgress({ job }: { job: MediaJob }) {
   );
 }
 
-export function findActiveJobForIdea(jobs: MediaJob[] | undefined, contentIdeaId: string) {
-  return jobs?.find(
-    (job) =>
-      job.content_idea_id === contentIdeaId &&
-      (job.status === "queued" || job.status === "generating_media" || job.status === "failed"),
-  );
+export function findActiveJobForOption(
+  jobs: MediaJob[] | undefined,
+  contentIdeaId: string,
+  kind: "image" | "video",
+  sequence: number,
+) {
+  return jobs
+    ?.filter(
+      (job) =>
+        job.content_idea_id === contentIdeaId &&
+        job.target_kind === kind &&
+        job.target_sequence === sequence &&
+        (job.status === "queued" || job.status === "generating_media" || job.status === "failed"),
+    )
+    .sort((left, right) => new Date(right.updated_at).getTime() - new Date(left.updated_at).getTime())[0];
 }
 
-export function lastPendingOptionIndex(options: Array<{ imageUrl?: string | null; videoUrl?: string | null }>) {
+export function findActiveJobForIdea(jobs: MediaJob[] | undefined, contentIdeaId: string) {
+  return jobs
+    ?.filter(
+      (job) =>
+        job.content_idea_id === contentIdeaId &&
+        (job.status === "queued" || job.status === "generating_media" || job.status === "failed"),
+    )
+    .sort((left, right) => new Date(right.updated_at).getTime() - new Date(left.updated_at).getTime())[0];
+}
+
+export function lastPendingOptionIndex(
+  options: Array<{ imageUrl?: string | null; videoUrl?: string | null }>,
+) {
   let lastIndex = -1;
   options.forEach((option, index) => {
     if (!option.imageUrl && !option.videoUrl) {

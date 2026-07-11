@@ -63,6 +63,11 @@ class ResearchListResponse(BaseModel):
     total: int
 
 
+class BriefInitRequest(BaseModel):
+    report_id: str
+    trend_name: str = Field(description="Trend to open in the post composer.")
+
+
 class BriefGenerateRequest(BaseModel):
     report_id: str
     trend_name: str | None = Field(
@@ -99,6 +104,27 @@ class BriefOut(TrendBrief):
 class ContentIdeaOut(ContentIdea):
     brief_item_id: str
     active_media_job: MediaJobOut | None = None
+
+
+class MediaPromptTargetRequest(BaseModel):
+    content_idea_id: str
+    kind: Literal["image", "video"]
+    sequence: int = Field(ge=1)
+
+
+class MediaPromptAdjustRequest(MediaPromptTargetRequest):
+    prompt: str = Field(min_length=1)
+    hook: str | None = None
+    caption: str | None = None
+    hashtags: list[str] | None = None
+
+
+class MediaPromptRegenerateRequest(MediaPromptTargetRequest):
+    field: Literal["prompt", "hook", "caption", "hashtags"] = "prompt"
+
+
+class MediaPromptActionOut(ContentIdeaOut):
+    pass
 
 
 class PromptConfigOut(BaseModel):

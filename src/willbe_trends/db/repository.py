@@ -390,6 +390,15 @@ def replace_content_idea(
     if item is None:
         raise ValueError("Brief item not found")
 
+    existing = get_content_idea_row(session, idea.id)
+    if existing is not None and existing.brief_item_id == brief_item_id:
+        return update_content_idea(session, idea.id, idea)
+
+    prior = latest_content_idea_row(item)
+    if prior is not None:
+        idea = idea.model_copy(update={"id": prior.id})
+        return update_content_idea(session, prior.id, idea)
+
     row = _content_idea_row_from_schema(idea, brief_item_id)
     session.add(row)
     session.commit()
@@ -426,9 +435,15 @@ def update_content_idea(session: Session, idea_id: str, idea: ContentIdea) -> Co
 
 
 def idea_needs_media(idea: ContentIdea) -> bool:
-    if idea.post_format == "video":
-        return any(not video.generated_url for video in idea.video_recommendations)
-    return any(not image.generated_url for image in idea.image_recommendations)
+    image_pending = any(
+        not image.generated_url and image.generation_status == "generating"
+        for image in idea.image_recommendations
+    )
+    video_pending = any(
+        not video.generated_url and video.generation_status == "generating"
+        for video in idea.video_recommendations
+    )
+    return image_pending or video_pending
 
 
 def media_job_to_schema(row: MediaGenerationJobRow) -> MediaJobStatus:
@@ -441,6 +456,8 @@ def media_job_to_schema(row: MediaGenerationJobRow) -> MediaJobStatus:
         brief_id=row.brief_id,
         brief_item_id=row.brief_item_id,
         content_idea_id=row.content_idea_id,
+        target_kind=row.target_kind,
+        target_sequence=row.target_sequence,
         created_at=row.created_at,
         updated_at=row.updated_at,
         completed_at=row.completed_at,
@@ -457,6 +474,8 @@ def create_media_job(
     status: str,
     stage: str,
     progress_percent: int,
+    target_kind: str | None = None,
+    target_sequence: int | None = None,
     error_message: str | None = None,
     completed_at: datetime | None = None,
 ) -> MediaGenerationJobRow:
@@ -469,6 +488,8 @@ def create_media_job(
         status=status,
         stage=stage,
         progress_percent=progress_percent,
+        target_kind=target_kind,
+        target_sequence=target_sequence,
         error_message=error_message,
         created_at=now,
         updated_at=now,

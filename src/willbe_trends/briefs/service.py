@@ -25,7 +25,23 @@ from willbe_trends.models.usage import LLMUsageStats
 from willbe_trends.llm.base import LLMProvider, LLMResponse
 
 BRIEF_ITEM_SYSTEM_PROMPT = platform_brief_system_prompt("instagram", "image")
-MAX_TOTAL_POST_OPTIONS = 6
+
+
+def _next_sequence(idea: ContentIdea) -> int:
+    sequences = [item.sequence for item in idea.image_recommendations]
+    sequences.extend(item.sequence for item in idea.video_recommendations)
+    return max(sequences, default=0) + 1
+
+
+def _latest_option(idea: ContentIdea) -> ImageRecommendation | ShortVideoRecommendation | None:
+    ranked: list[tuple[int, ImageRecommendation | ShortVideoRecommendation]] = []
+    for image in idea.image_recommendations:
+        ranked.append((image.sequence, image))
+    for video in idea.video_recommendations:
+        ranked.append((video.sequence, video))
+    if not ranked:
+        return None
+    return max(ranked, key=lambda pair: pair[0])[1]
 
 
 def _extract_json_payload(text: str) -> dict:
@@ -145,7 +161,10 @@ def _platform_review_from_payload(payload: dict, platform: SocialPlatform) -> Pl
 
 def _image_recommendations_from_payload(
     payload: dict,
+    *,
+    platform: SocialPlatform,
     platform_review: PlatformPostReview | None = None,
+    sequence: int = 1,
 ) -> list[ImageRecommendation]:
     items = payload.get("image_recommendations", [])[:1]
     if not items:
@@ -157,6 +176,9 @@ def _image_recommendations_from_payload(
             label=item.get("label", "Post option"),
             aspect_ratio=item.get("aspect_ratio", "1:1"),
             prompt=item.get("prompt", ""),
+            platform=platform,
+            post_format="image",
+            sequence=sequence,
             hook=item.get("hook") or (platform_review.hook if platform_review else None),
             caption=item.get("caption") or (platform_review.caption if platform_review else None),
             hashtags=(item.get("hashtags") or (platform_review.hashtags if platform_review else []))[:10],
@@ -166,7 +188,10 @@ def _image_recommendations_from_payload(
 
 def _video_recommendations_from_payload(
     payload: dict,
+    *,
+    platform: SocialPlatform,
     platform_review: PlatformPostReview | None = None,
+    sequence: int = 1,
 ) -> list[ShortVideoRecommendation]:
     items = payload.get("video_recommendations", [])[:1]
     if not items:
@@ -179,6 +204,9 @@ def _video_recommendations_from_payload(
             label=item.get("label", "Video option"),
             aspect_ratio=item.get("aspect_ratio", "9:16"),
             prompt=item.get("prompt", ""),
+            platform=platform,
+            post_format="video",
+            sequence=sequence,
             duration_seconds=int(item.get("duration_seconds", 8)),
             hook=item.get("hook") or (platform_review.hook if platform_review else None),
             caption=item.get("caption") or (platform_review.caption if platform_review else None),
@@ -192,17 +220,15 @@ def _sync_platform_review_from_latest_option(idea: ContentIdea) -> ContentIdea:
     if idea.platform_review is None:
         return idea
 
-    if idea.post_format == "video" and idea.video_recommendations:
-        latest = idea.video_recommendations[-1]
-    elif idea.image_recommendations:
-        latest = idea.image_recommendations[-1]
-    else:
+    latest = _latest_option(idea)
+    if latest is None:
         return idea
 
     return idea.model_copy(
         update={
             "platform_review": idea.platform_review.model_copy(
                 update={
+                    "platform": latest.platform,
                     "hook": latest.hook or idea.platform_review.hook,
                     "caption": latest.caption or idea.platform_review.caption,
                     "hashtags": latest.hashtags or idea.platform_review.hashtags,
@@ -269,10 +295,24 @@ def _idea_from_payload(
         ),
         platform_review=platform_review,
         image_recommendations=(
-            _image_recommendations_from_payload(payload, platform_review) if post_format == "image" else []
+            _image_recommendations_from_payload(
+                payload,
+                platform=platform,
+                platform_review=platform_review,
+                sequence=1,
+            )
+            if post_format == "image"
+            else []
         ),
         video_recommendations=(
-            _video_recommendations_from_payload(payload, platform_review) if post_format == "video" else []
+            _video_recommendations_from_payload(
+                payload,
+                platform=platform,
+                platform_review=platform_review,
+                sequence=1,
+            )
+            if post_format == "video"
+            else []
         ),
         video_recommendation=_video_recommendation_from_payload(payload),
         generated_at=datetime.now(timezone.utc),
@@ -287,65 +327,79 @@ def _idea_from_payload(
 
 
 def _merge_post_options(prior: ContentIdea, new: ContentIdea) -> ContentIdea:
-    if new.post_format == "video":
-        seen_keys = {_video_option_key(video) for video in prior.video_recommendations}
-        merged_videos = list(prior.video_recommendations)
-        for video in new.video_recommendations[:1]:
-            key = _video_option_key(video)
-            if key in seen_keys:
-                continue
-            merged_videos.append(video)
-            seen_keys.add(key)
-        merged = new.model_copy(update={"video_recommendations": merged_videos[:MAX_TOTAL_POST_OPTIONS]})
-        return _sync_platform_review_from_latest_option(merged)
-
-    seen_keys = {_post_option_key(image) for image in prior.image_recommendations}
+    next_seq = _next_sequence(prior)
     merged_images = list(prior.image_recommendations)
+    merged_videos = list(prior.video_recommendations)
+    seen_image_keys = {_post_option_key(image) for image in merged_images}
+    seen_video_keys = {_video_option_key(video) for video in merged_videos}
+
     for image in new.image_recommendations[:1]:
         key = _post_option_key(image)
-        if key in seen_keys:
+        if key in seen_image_keys:
             continue
-        merged_images.append(image)
-        seen_keys.add(key)
+        merged_images.append(
+            image.model_copy(
+                update={"platform": new.platform, "post_format": "image", "sequence": next_seq}
+            )
+        )
+        next_seq += 1
 
-    merged = new.model_copy(update={"image_recommendations": merged_images[:MAX_TOTAL_POST_OPTIONS]})
+    for video in new.video_recommendations[:1]:
+        key = _video_option_key(video)
+        if key in seen_video_keys:
+            continue
+        merged_videos.append(
+            video.model_copy(
+                update={"platform": new.platform, "post_format": "video", "sequence": next_seq}
+            )
+        )
+        next_seq += 1
+
+    merged = new.model_copy(
+        update={
+            "id": prior.id,
+            "image_recommendations": merged_images,
+            "video_recommendations": merged_videos,
+            "angles": prior.angles or new.angles,
+            "captions": prior.captions or new.captions,
+            "hashtags": prior.hashtags or new.hashtags,
+            "posting_tip": prior.posting_tip or new.posting_tip,
+            "product_mapping": prior.product_mapping or new.product_mapping,
+        }
+    )
     return _sync_platform_review_from_latest_option(merged)
 
 
 def _regenerate_context(prior: ContentIdea | None) -> str:
     if prior is None:
         return ""
-    if prior.post_format == "video":
-        lines = [
-            "",
-            "REGENERATION REQUEST:",
-            "Add exactly one more short-video option with a new hook, caption, hashtags, and video prompt.",
-            "Return exactly one video_recommendations object. It will be appended to prior options.",
-            "Make the copy and visual prompt clearly different from every prior option.",
-            "Do not reuse prior wording or video prompts verbatim.",
-        ]
-        for index, video in enumerate(prior.video_recommendations, start=1):
-            lines.append(f"Prior option {index} hook: {video.hook or 'none'}")
-            lines.append(f"Prior option {index} caption: {video.caption or 'none'}")
-            if video.hashtags:
-                lines.append(f"Prior option {index} hashtags: {', '.join(video.hashtags)}")
-            lines.append(f"Prior option {index} video prompt ({video.label}): {video.prompt}")
-        return "\n".join(lines)
-
     lines = [
         "",
         "REGENERATION REQUEST:",
-        "Add exactly one more post option with a new hook, caption, hashtags, and image prompt.",
-        "Return exactly one image_recommendation object. It will be appended to prior options.",
+        "Add exactly one more post option with a new hook, caption, hashtags, and media prompt.",
+        "Return exactly one media object for the requested format.",
         "Make the copy and visual prompt clearly different from every prior option.",
-        "Do not reuse prior wording or image prompts verbatim.",
+        "Do not reuse prior wording or media prompts verbatim.",
     ]
-    for index, image in enumerate(prior.image_recommendations, start=1):
-        lines.append(f"Prior option {index} hook: {image.hook or 'none'}")
-        lines.append(f"Prior option {index} caption: {image.caption or 'none'}")
-        if image.hashtags:
-            lines.append(f"Prior option {index} hashtags: {', '.join(image.hashtags)}")
-        lines.append(f"Prior option {index} image prompt ({image.label}): {image.prompt}")
+    ranked: list[tuple[int, str, ImageRecommendation | ShortVideoRecommendation]] = []
+    for image in prior.image_recommendations:
+        ranked.append((image.sequence, "image", image))
+    for video in prior.video_recommendations:
+        ranked.append((video.sequence, "video", video))
+    for index, (_sequence, kind, option) in enumerate(sorted(ranked, key=lambda pair: pair[0]), start=1):
+        platform = option.platform
+        if kind == "image":
+            lines.append(f"Prior option {index} ({platform} image) hook: {option.hook or 'none'}")
+            lines.append(f"Prior option {index} caption: {option.caption or 'none'}")
+            if option.hashtags:
+                lines.append(f"Prior option {index} hashtags: {', '.join(option.hashtags)}")
+            lines.append(f"Prior option {index} image prompt ({option.label}): {option.prompt}")
+        else:
+            lines.append(f"Prior option {index} ({platform} video) hook: {option.hook or 'none'}")
+            lines.append(f"Prior option {index} caption: {option.caption or 'none'}")
+            if option.hashtags:
+                lines.append(f"Prior option {index} hashtags: {', '.join(option.hashtags)}")
+            lines.append(f"Prior option {index} video prompt ({option.label}): {option.prompt}")
     return "\n".join(lines)
 
 
@@ -436,6 +490,43 @@ def find_trend_in_report(row: ResearchReportRow, trend_name: str):
         if trend.name.lower() == lowered:
             return trend
     return None
+
+
+def create_brief_shell_for_trend(
+    *,
+    row: ResearchReportRow,
+    trend_name: str,
+) -> TrendBrief:
+    trend_row = find_trend_in_report(row, trend_name)
+    if trend_row is None:
+        raise ValueError(f"Trend not found in report: {trend_name}")
+
+    citations = _report_citations(row)
+    trend = _trend_row_to_signal(trend_row)
+    score = score_trend(trend, citations)
+    item = BriefItem(
+        id=str(uuid.uuid4()),
+        rank=1,
+        score=score,
+        evidence_summary=row.summary,
+        why_now="Pick a platform and post type below, then generate your first option.",
+        caveats=None,
+        trend=trend,
+        content_idea=None,
+    )
+    return TrendBrief(
+        id=str(uuid.uuid4()),
+        report_id=row.id,
+        title=f"Create post — {trend.name}",
+        summary=f"Generate post options for {trend.name}, grounded in the saved {row.research_time or 'current'} research.",
+        region=row.region,
+        research_time=row.research_time or "",
+        generated_at=datetime.now(timezone.utc),
+        llm_provider=row.llm_provider,
+        llm_model=row.llm_model,
+        llm_usage=None,
+        items=[item],
+    )
 
 
 async def generate_brief_for_trend(
@@ -590,6 +681,5 @@ async def regenerate_content_idea_for_item(
     payload = _extract_json_payload(response.content)
     _, _, _, idea = _idea_from_payload(payload, platform=platform, post_format=resolved_format)
     if prior_idea is not None:
-        idea = idea.model_copy(update={"post_format": prior_idea.post_format})
         idea = _merge_post_options(prior_idea, idea)
     return idea, response

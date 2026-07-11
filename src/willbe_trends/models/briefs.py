@@ -42,6 +42,9 @@ class ImageRecommendation(BaseModel):
     label: str
     aspect_ratio: str = Field(default="1:1", description="1:1, 4:5, or 9:16")
     prompt: str
+    platform: SocialPlatform = "instagram"
+    post_format: PostFormat = "image"
+    sequence: int = 0
     hook: str | None = None
     caption: str | None = None
     hashtags: list[str] = Field(default_factory=list)
@@ -76,6 +79,9 @@ class ShortVideoRecommendation(BaseModel):
     label: str
     aspect_ratio: str = Field(default="9:16", description="9:16 for Reels and TikTok")
     prompt: str
+    platform: SocialPlatform = "instagram"
+    post_format: PostFormat = "video"
+    sequence: int = 0
     duration_seconds: int = Field(default=8, ge=4, le=20)
     hook: str | None = None
     caption: str | None = None

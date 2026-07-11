@@ -127,11 +127,14 @@ export interface ImageRecommendation {
   label: string;
   aspect_ratio: string;
   prompt: string;
+  platform?: SocialPlatform;
+  post_format?: PostFormat;
+  sequence?: number;
   hook: string | null;
   caption: string | null;
   hashtags: string[];
   generated_url: string | null;
-  generation_status: string;
+  generation_status: MediaGenerationStatus;
   generation_provider: string | null;
   generation_model: string | null;
   generation_error: string | null;
@@ -161,13 +164,16 @@ export interface ShortVideoRecommendation {
   label: string;
   aspect_ratio: string;
   prompt: string;
+  platform?: SocialPlatform;
+  post_format?: PostFormat;
+  sequence?: number;
   duration_seconds: number;
   hook: string | null;
   caption: string | null;
   hashtags: string[];
   scenes: VideoScene[];
   generated_url: string | null;
-  generation_status: string;
+  generation_status: MediaGenerationStatus;
   generation_provider: string | null;
   generation_model: string | null;
   generation_error: string | null;
@@ -215,7 +221,21 @@ export interface TrendBrief {
   active_media_jobs?: MediaJob[];
 }
 
-export type MediaJobStatus = "queued" | "generating_media" | "completed" | "failed" | "skipped";
+export type MediaJobStatus =
+  | "queued"
+  | "generating_media"
+  | "completed"
+  | "failed"
+  | "skipped"
+  | "cancelled";
+
+export type MediaGenerationStatus =
+  | "prompt_only"
+  | "generating"
+  | "generated"
+  | "cancelled"
+  | "failed"
+  | string;
 
 export interface MediaJob {
   id: string;
@@ -226,6 +246,8 @@ export interface MediaJob {
   brief_id: string | null;
   brief_item_id: string | null;
   content_idea_id: string | null;
+  target_kind: "image" | "video" | null;
+  target_sequence: number | null;
   created_at: string;
   updated_at: string;
   completed_at: string | null;

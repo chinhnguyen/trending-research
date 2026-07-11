@@ -919,8 +919,216 @@ textarea {
 .post-generate-more {
   display: grid;
   gap: 16px;
-  margin-bottom: 18px;
+  margin-top: 18px;
   background: var(--surface-muted);
+}
+
+.post-option-empty {
+  background: var(--surface-muted);
+  text-align: center;
+}
+
+.media-prompt-review {
+  width: 100%;
+}
+
+.media-prompt-review-layout {
+  display: grid;
+  grid-template-columns: 1fr minmax(200px, 280px);
+  gap: 18px;
+  width: 100%;
+}
+
+.media-prompt-fields {
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+}
+
+.media-prompt-preview-column {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+
+.media-prompt-preview-frame {
+  width: 100%;
+  aspect-ratio: 4 / 5;
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--surface-muted);
+  border: 1px solid var(--border);
+}
+
+.media-prompt-preview-frame img,
+.media-prompt-preview-frame video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.media-preview-empty,
+.media-preview-generating {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+  height: 100%;
+  padding: 16px;
+  text-align: center;
+}
+
+.media-preview-empty p,
+.media-preview-generating p {
+  margin: 0;
+}
+
+.media-prompt-review-header h4 {
+  margin: 4px 0 0;
+}
+
+.media-prompt-field {
+  display: grid;
+  gap: 8px;
+}
+
+.media-prompt-field-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.media-prompt-field-actions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.media-prompt-accept-inline {
+  white-space: nowrap;
+}
+
+.media-prompt-readonly {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px 14px;
+  background: var(--surface-muted);
+  color: var(--text);
+  white-space: pre-wrap;
+  line-height: 1.5;
+  min-height: 48px;
+}
+
+.media-prompt-field.is-editing .media-prompt-readonly {
+  display: none;
+}
+
+.media-prompt-field-loading {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: 1px dashed var(--border);
+  border-radius: 12px;
+  padding: 14px;
+  background: var(--surface-muted);
+  min-height: 48px;
+}
+
+.media-prompt-field.is-loading textarea,
+.media-prompt-field.is-loading .media-prompt-readonly {
+  display: none;
+}
+
+.field-spinner {
+  width: 18px;
+  height: 18px;
+  border: 2px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: field-spin 0.8s linear infinite;
+  flex-shrink: 0;
+}
+
+@keyframes field-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.media-prompt-field textarea {
+  width: 100%;
+  min-height: 140px;
+  resize: vertical;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px 14px;
+  font: inherit;
+  background: var(--surface);
+  color: var(--text);
+}
+
+.media-prompt-actions {
+  flex-wrap: wrap;
+}
+
+.button-icon.active {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 10%, var(--surface));
+}
+
+.media-prompt-input-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 10px;
+  align-items: start;
+}
+
+.button-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.button-icon:hover:not(:disabled) {
+  background: var(--surface-muted);
+}
+
+.button-icon:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.post-options-locked .post-option-card.is-locked {
+  opacity: 0.55;
+  pointer-events: none;
+  user-select: none;
+}
+
+.post-options-locked .post-generate-more {
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+.media-card-placeholder.cancelled {
+  display: grid;
+  gap: 12px;
+  justify-items: start;
 }
 
 .post-generate-more-copy {
@@ -1013,7 +1221,7 @@ textarea {
 
   .trend-reference-grid,
   .post-guidance-grid,
-  .post-option-body {
+  .media-prompt-review-layout {
     grid-template-columns: 1fr;
   }
 
@@ -1134,9 +1342,6 @@ textarea {
 }
 
 .post-option-body {
-  display: grid;
-  grid-template-columns: 1fr minmax(200px, 280px);
-  gap: 18px;
   padding: 18px;
 }
 

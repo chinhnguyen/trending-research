@@ -1,9 +1,18 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useParams } from "react-router-dom";
-import { generateContentIdea, getBrief } from "../api";
+import {
+  acceptMediaPrompt,
+  adjustMediaPrompt,
+  generateContentIdea,
+  getBrief,
+  regenerateMediaPrompt,
+  type RegenerateField,
+} from "../api";
 import { PostComposerView } from "../components/PostComposerView";
+import type { MediaPromptTarget, OptionDraft } from "../components/PostOptionsList";
 import { useMediaJobPolling } from "../hooks/useMediaJobPolling";
-import type { MediaJob, PostFormat, SocialPlatform, TrendBrief } from "../types";
+import type { ContentIdeaOut, MediaJob, PostFormat, SocialPlatform, TrendBrief } from "../types";
+import { parseHashtags } from "../utils/postFormat";
 
 function mergeJobs(...groups: Array<MediaJob[] | undefined>) {
   const merged = new Map<string, MediaJob>();
@@ -15,13 +24,42 @@ function mergeJobs(...groups: Array<MediaJob[] | undefined>) {
   return Array.from(merged.values());
 }
 
+function applyContentIdeaUpdate(brief: TrendBrief, updated: ContentIdeaOut): TrendBrief {
+  const { brief_item_id: briefItemId, active_media_job: _job, ...contentIdea } = updated;
+  return {
+    ...brief,
+    items: brief.items.map((entry) =>
+      entry.id === briefItemId ? { ...entry, content_idea: contentIdea } : entry,
+    ),
+  };
+}
+
+function apiTarget(target: MediaPromptTarget) {
+  return {
+    content_idea_id: target.contentIdeaId,
+    kind: target.kind,
+    sequence: target.sequence,
+  };
+}
+
+function draftPayload(draft: OptionDraft) {
+  return {
+    prompt: draft.prompt.trim(),
+    hook: draft.hook.trim() || null,
+    caption: draft.caption.trim(),
+    hashtags: parseHashtags(draft.hashtagsText),
+  };
+}
+
 export function BriefPage() {
   const { id } = useParams<{ id: string }>();
   const location = useLocation();
   const [brief, setBrief] = useState<TrendBrief | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [regeneratingId, setRegeneratingId] = useState<string | null>(null);
+  const [generating, setGenerating] = useState(false);
+  const [promptBusyKey, setPromptBusyKey] = useState<string | null>(null);
+  const [regeneratingField, setRegeneratingField] = useState<RegenerateField | null>(null);
   const [trackedJobs, setTrackedJobs] = useState<MediaJob[]>(() => {
     const fromNav = (location.state as { mediaJobs?: MediaJob[] } | null)?.mediaJobs;
     return fromNav ?? [];
@@ -62,28 +100,43 @@ export function BriefPage() {
     [trackedJobs, pollingJobs, brief?.active_media_jobs],
   );
 
-  async function regenerateItem(briefItemId: string, platform: SocialPlatform, postFormat: PostFormat) {
-    setRegeneratingId(briefItemId);
+  const mediaGenerating = progressJobs.some(
+    (job) => job.status === "queued" || job.status === "generating_media",
+  );
+
+  async function withPromptAction(
+    target: MediaPromptTarget,
+    action: () => Promise<ContentIdeaOut>,
+    field: RegenerateField | null = null,
+  ) {
+    const key = `${target.kind}-${target.sequence}`;
+    setPromptBusyKey(key);
+    setRegeneratingField(field);
     setError(null);
     try {
-      const updated = await generateContentIdea({ brief_item_id: briefItemId, platform, post_format: postFormat });
+      const updated = await action();
       if (updated.active_media_job) {
         setTrackedJobs((current) => mergeJobs(current, [updated.active_media_job!]));
       }
-      setBrief((current) => {
-        if (!current) return current;
-        const { brief_item_id: _ignored, active_media_job: _job, ...contentIdea } = updated;
-        return {
-          ...current,
-          items: current.items.map((entry) =>
-            entry.id === briefItemId ? { ...entry, content_idea: contentIdea } : entry,
-          ),
-        };
-      });
+      setBrief((current) => (current ? applyContentIdeaUpdate(current, updated) : current));
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not generate more options");
+      setError(err instanceof Error ? err.message : "Could not update media prompt");
     } finally {
-      setRegeneratingId(null);
+      setPromptBusyKey(null);
+      setRegeneratingField(null);
+    }
+  }
+
+  async function generateOption(briefItemId: string, platform: SocialPlatform, postFormat: PostFormat) {
+    setGenerating(true);
+    setError(null);
+    try {
+      const updated = await generateContentIdea({ brief_item_id: briefItemId, platform, post_format: postFormat });
+      setBrief((current) => (current ? applyContentIdeaUpdate(current, updated) : current));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not generate option");
+    } finally {
+      setGenerating(false);
     }
   }
 
@@ -92,15 +145,15 @@ export function BriefPage() {
   if (!brief) return null;
 
   const item = brief.items[0];
-  const mediaBusy = progressJobs.some(
-    (job) => job.status === "queued" || job.status === "generating_media",
-  );
+  const optionCount =
+    (item?.content_idea?.image_recommendations.length ?? 0) +
+    (item?.content_idea?.video_recommendations.length ?? 0);
 
   return (
     <div className="page-stack">
       <section className="hero hero-compact">
         <div className="badges">
-          <span className="badge badge-accent">post ready</span>
+          <span className="badge badge-accent">{optionCount ? "post composer" : "create post"}</span>
           <span className="badge">{brief.region}</span>
         </div>
         <h1>{brief.title}</h1>
@@ -109,17 +162,28 @@ export function BriefPage() {
 
       {error ? <p className="error-text panel panel-padding">{error}</p> : null}
 
-      {item?.content_idea ? (
+      {item ? (
         <PostComposerView
           trend={item.trend}
           evidenceSummary={item.evidence_summary}
           whyNow={item.why_now}
           idea={item.content_idea}
+          contentIdeaId={item.content_idea?.id}
           mediaJobs={progressJobs}
-          onGenerateMore={(setup) =>
-            regenerateItem(item.id, setup.platform, setup.postFormat)
+          onGenerate={(setup) => generateOption(item.id, setup.platform, setup.postFormat)}
+          generating={generating}
+          mediaGenerating={mediaGenerating}
+          promptBusyKey={promptBusyKey}
+          regeneratingField={regeneratingField}
+          onAcceptPrompt={(target, draft) =>
+            withPromptAction(target, async () => {
+              await adjustMediaPrompt({ ...apiTarget(target), ...draftPayload(draft) });
+              return acceptMediaPrompt(apiTarget(target));
+            })
           }
-          generatingMore={regeneratingId === item.id || mediaBusy}
+          onRegeneratePrompt={(target, field) =>
+            withPromptAction(target, () => regenerateMediaPrompt({ ...apiTarget(target), field }), field)
+          }
         />
       ) : null}
 
