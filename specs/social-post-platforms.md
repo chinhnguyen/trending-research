@@ -65,6 +65,10 @@ TikTok posts still use copy-to-clipboard.
 
 Full video synthesis uses the OpenAI **Sora** API (`POST /v1/videos`) when `post_format=video` and media generation is enabled. Clips are generated at 9:16 (720×1280) for 4–12 seconds by default. Storyboard key frames still render for image posts when a `video_recommendation` is present.
 
+## Prompt review (v0.4.0)
+
+Before media generation, each post option enters `prompt_only` status. The user can edit or reload hook, caption, hashtags, and the generation prompt inline. Accepting (or the optional 10s auto-accept after edit/reload) starts the background media job.
+
 ## Background media jobs
 
 Caption/copy generation returns immediately. Image and video rendering run in a **background job** stored in SQLite (`media_generation_jobs`). The API exposes:

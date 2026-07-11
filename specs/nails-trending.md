@@ -140,7 +140,7 @@ Interview mock reference: [`samples/market-validation/mock-social-post.json`](..
 
 - Caption draft + hashtag set per trend
 - Owner always supplies nail photo
-- Vietnamese localization if VN is beachhead
+- Vietnamese localization if VN is beachhead — **shipped in v0.4.0** (EN/VI UI + `preferred_locale` on research/briefs/media prompts)
 - Defer: AI mood boards, auto-scheduling, carousel design
 
 Spec detail: [`projects/spa-market-validation/specs/content-generation-concepts.md`](../projects/spa-market-validation/specs/content-generation-concepts.md)
