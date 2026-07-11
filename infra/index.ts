@@ -20,6 +20,10 @@ const openaiModel = config.get("openaiModel") ?? "gpt-4o-mini";
 const anthropicModel = config.get("anthropicModel") ?? "claude-sonnet-4-20250514";
 const tavilyEnabled = config.getBoolean("tavilyEnabled") ?? false;
 const imageSearchEnabled = config.getBoolean("imageSearchEnabled") ?? true;
+const mediaGenerationEnabled = config.getBoolean("mediaGenerationEnabled") ?? true;
+const mediaRequireProbe = config.getBoolean("mediaRequireProbe") ?? false;
+const openaiImageModel = config.get("openaiImageModel") ?? "gpt-image-1-mini";
+const openaiVideoModel = config.get("openaiVideoModel") ?? "sora-2";
 const corsOrigins = config.get("corsOrigins") ?? "";
 const domainName = config.get("domainName") ?? "trending-research.wilbi.fi";
 const hostedZoneName = config.get("hostedZoneName") ?? "wilbi.fi";
@@ -352,6 +356,15 @@ const taskDefinition = new aws.ecs.TaskDefinition(`${appName}-task`, {
                         { name: "WILLBE_LLM_PROVIDER", value: llmProvider },
                         { name: "WILLBE_SEARCH_PROVIDER", value: searchProvider },
                         { name: "WILLBE_IMAGE_SEARCH_ENABLED", value: `${imageSearchEnabled}` },
+                        { name: "WILLBE_MEDIA_GENERATION_ENABLED", value: `${mediaGenerationEnabled}` },
+                        { name: "WILLBE_MEDIA_REQUIRE_PROBE", value: `${mediaRequireProbe}` },
+                        { name: "WILLBE_IMAGE_GENERATION_PROVIDER", value: "openai" },
+                        { name: "WILLBE_VIDEO_GENERATION_PROVIDER", value: "openai" },
+                        { name: "WILLBE_MEDIA_MAX_IMAGES_PER_POST", value: "1" },
+                        { name: "WILLBE_MEDIA_MAX_VIDEOS_PER_POST", value: "1" },
+                        { name: "WILLBE_MEDIA_MAX_VIDEO_SCENES", value: "2" },
+                        { name: "OPENAI_IMAGE_MODEL", value: openaiImageModel },
+                        { name: "OPENAI_VIDEO_MODEL", value: openaiVideoModel },
                         { name: "WILLBE_CORS_ORIGINS", value: corsOrigins },
                         { name: "WILLBE_WEB_DIST", value: "/app/web/dist" },
                         ...(httpAuthUser ? [{ name: "WILLBE_HTTP_AUTH_USER", value: httpAuthUser }] : []),

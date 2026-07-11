@@ -117,6 +117,10 @@ pulumi config set containerMemory 1024
 pulumi config set openaiModel gpt-4o-mini
 pulumi config set anthropicModel claude-sonnet-4-20250514
 pulumi config set imageSearchEnabled true
+pulumi config set mediaGenerationEnabled true
+pulumi config set mediaRequireProbe false
+pulumi config set openaiImageModel gpt-image-1-mini
+pulumi config set openaiVideoModel sora-2
 pulumi config set tavilyEnabled true
 pulumi config set --secret tavilyApiKey YOUR_TAVILY_KEY
 pulumi config set --secret anthropicApiKey YOUR_ANTHROPIC_KEY
@@ -139,3 +143,4 @@ Pulumi outputs the public ALB URL after deployment.
 - `ollama` is not a good fit for this AWS setup unless you add your own model-serving infrastructure.
 - The stack provisions an ACM certificate with DNS validation and creates a Route53 alias record for the configured domain.
 - Set `httpAuthUser` and `httpAuthPassword` to enable HTTP basic auth on the public site. `/api/health` stays open for load balancer checks.
+- **AI media** (images + Sora video) requires `mediaGenerationEnabled: true` (default). Local dev uses a probe file; production sets `mediaRequireProbe: false` so EFS does not need a manual probe. Your OpenAI account must have **Sora API access** for video posts.
