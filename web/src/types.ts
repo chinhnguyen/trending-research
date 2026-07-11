@@ -293,6 +293,7 @@ export interface BriefGenerateRequest {
   post_format?: PostFormat;
   provider?: string | null;
   max_trends?: number;
+  preferred_locale?: string | null;
 }
 
 export interface ContentIdeaGenerateRequest {
@@ -300,6 +301,7 @@ export interface ContentIdeaGenerateRequest {
   platform?: SocialPlatform;
   post_format?: PostFormat;
   provider?: string | null;
+  preferred_locale?: string | null;
 }
 
 export interface ContentIdeaOut extends ContentIdea {
@@ -314,6 +316,7 @@ export interface ResearchRunRequest {
   provider?: string | null;
   web_search?: boolean;
   search_provider?: string | null;
+  preferred_locale?: string | null;
 }
 
 export interface PersonalizedResearchRequest extends ResearchRunRequest {

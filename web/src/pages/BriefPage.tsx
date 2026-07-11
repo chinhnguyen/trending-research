@@ -11,6 +11,7 @@ import {
 import { PostComposerView } from "../components/PostComposerView";
 import type { MediaPromptTarget, OptionDraft } from "../components/PostOptionsList";
 import { useMediaJobPolling } from "../hooks/useMediaJobPolling";
+import { useLocale, useTranslation } from "../i18n/LocaleProvider";
 import type { ContentIdeaOut, MediaJob, PostFormat, SocialPlatform, TrendBrief } from "../types";
 import { parseHashtags } from "../utils/postFormat";
 
@@ -54,6 +55,8 @@ function draftPayload(draft: OptionDraft) {
 export function BriefPage() {
   const { id } = useParams<{ id: string }>();
   const location = useLocation();
+  const { preferredLocale } = useLocale();
+  const t = useTranslation();
   const [brief, setBrief] = useState<TrendBrief | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -120,7 +123,7 @@ export function BriefPage() {
       }
       setBrief((current) => (current ? applyContentIdeaUpdate(current, updated) : current));
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not update media prompt");
+      setError(err instanceof Error ? err.message : t.couldNotUpdatePrompt);
     } finally {
       setPromptBusyKey(null);
       setRegeneratingField(null);
@@ -131,16 +134,21 @@ export function BriefPage() {
     setGenerating(true);
     setError(null);
     try {
-      const updated = await generateContentIdea({ brief_item_id: briefItemId, platform, post_format: postFormat });
+      const updated = await generateContentIdea({
+        brief_item_id: briefItemId,
+        platform,
+        post_format: postFormat,
+        preferred_locale: preferredLocale,
+      });
       setBrief((current) => (current ? applyContentIdeaUpdate(current, updated) : current));
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not generate option");
+      setError(err instanceof Error ? err.message : t.couldNotGenerate);
     } finally {
       setGenerating(false);
     }
   }
 
-  if (loading) return <div className="loading panel panel-padding">Loading post…</div>;
+  if (loading) return <div className="loading panel panel-padding">{t.loadingPost}</div>;
   if (error && !brief) return <div className="error panel panel-padding">{error}</div>;
   if (!brief) return null;
 
@@ -153,7 +161,7 @@ export function BriefPage() {
     <div className="page-stack">
       <section className="hero hero-compact">
         <div className="badges">
-          <span className="badge badge-accent">{optionCount ? "post composer" : "create post"}</span>
+          <span className="badge badge-accent">{optionCount ? t.postComposer : t.createPost}</span>
           <span className="badge">{brief.region}</span>
         </div>
         <h1>{brief.title}</h1>
@@ -182,14 +190,23 @@ export function BriefPage() {
             })
           }
           onRegeneratePrompt={(target, field) =>
-            withPromptAction(target, () => regenerateMediaPrompt({ ...apiTarget(target), field }), field)
+            withPromptAction(
+              target,
+              () =>
+                regenerateMediaPrompt({
+                  ...apiTarget(target),
+                  field,
+                  preferred_locale: preferredLocale,
+                }),
+              field,
+            )
           }
         />
       ) : null}
 
       {brief.items.length > 1 ? (
         <section className="panel panel-padding">
-          <h2 className="section-title">Other ranked trends</h2>
+          <h2 className="section-title">{t.otherTrends}</h2>
           <div className="brief-list">
             {brief.items.slice(1).map((other) => (
               <article key={other.id} className="brief-card">
@@ -203,7 +220,7 @@ export function BriefPage() {
 
       <div className="button-row">
         <Link to={`/reports/${brief.report_id}`} className="nav-link">
-          Back to report
+          {t.backToReport}
         </Link>
       </div>
     </div>

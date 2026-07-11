@@ -1,11 +1,13 @@
 import { useState } from "react";
 import type { RegenerateField } from "../api";
+import { useLocale, useTranslation } from "../i18n/LocaleProvider";
 import type { ContentIdea, MediaJob, PostFormat, SocialPlatform } from "../types";
+import { pickCaption } from "../utils/locale";
 import { copyPostBundle, formatHashtags, formatLabel } from "../utils/postFormat";
 import { InstagramShareButton } from "./InstagramShareButton";
 import { MediaPromptReview, type OptionDraft } from "./MediaPromptReview";
 import { findActiveJobForOption, OptionMediaProgress } from "./OptionMediaProgress";
-import { PostSetupPicker, postSetupLabel, POST_PLATFORMS, POST_TYPES, type PostSetup } from "./PostSetupPicker";
+import { PostSetupPicker, usePostPlatforms, usePostSetupLabel, usePostTypes, type PostSetup } from "./PostSetupPicker";
 
 export type { OptionDraft };
 
@@ -33,9 +35,14 @@ export type MediaPromptTarget = {
   sequence: number;
 };
 
-function setupLabelForOption(platform: SocialPlatform, postFormat: PostFormat) {
-  const platformLabel = POST_PLATFORMS.find((item) => item.id === platform)?.label ?? platform;
-  const typeLabel = POST_TYPES.find((item) => item.id === postFormat)?.label ?? postFormat;
+function setupLabelForOption(
+  platform: SocialPlatform,
+  postFormat: PostFormat,
+  platforms: ReturnType<typeof usePostPlatforms>,
+  postTypes: ReturnType<typeof usePostTypes>,
+) {
+  const platformLabel = platforms.find((item) => item.id === platform)?.label ?? platform;
+  const typeLabel = postTypes.find((item) => item.id === postFormat)?.label ?? postFormat;
   return `${platformLabel} · ${typeLabel}`;
 }
 
@@ -48,12 +55,17 @@ function optionDraft(option: PostOption): OptionDraft {
   };
 }
 
-function buildPostOptions(idea: ContentIdea | null): PostOption[] {
+function buildPostOptions(
+  idea: ContentIdea | null,
+  preferredLocale: string,
+  fallbackCaptionText: string,
+  optionLabel: (n: number) => string,
+): PostOption[] {
   if (!idea) return [];
 
   const review = idea.platform_review;
-  const fallbackCaption =
-    review?.caption ?? idea.captions[0]?.caption ?? "Share your latest salon work for this trend.";
+  const localeCaption = pickCaption(idea.captions, preferredLocale);
+  const fallbackCaption = review?.caption ?? localeCaption ?? fallbackCaptionText;
   const fallbackHashtags = review?.hashtags.length ? review.hashtags : idea.hashtags;
   const fallbackHook = review?.hook ?? null;
   const fallbackPlatform = idea.platform;
@@ -68,7 +80,7 @@ function buildPostOptions(idea: ContentIdea | null): PostOption[] {
       platform,
       postFormat: "image",
       sequence: image.sequence ?? index + 1,
-      title: image.label || `Post option ${index + 1}`,
+      title: image.label || optionLabel(index + 1),
       caption: image.caption ?? fallbackCaption,
       hashtags: image.hashtags.length > 0 ? image.hashtags : fallbackHashtags,
       hook: image.hook ?? fallbackHook,
@@ -88,7 +100,7 @@ function buildPostOptions(idea: ContentIdea | null): PostOption[] {
       platform,
       postFormat: "video",
       sequence: video.sequence ?? index + 1,
-      title: video.label || `Video option ${index + 1}`,
+      title: video.label || optionLabel(index + 1),
       caption: video.caption ?? fallbackCaption,
       hashtags: video.hashtags.length > 0 ? video.hashtags : fallbackHashtags,
       hook: video.hook ?? fallbackHook,
@@ -115,10 +127,12 @@ function MediaPreview({
   option,
   activeJob,
   accepting = false,
+  t,
 }: {
   option: PostOption;
   activeJob?: MediaJob;
   accepting?: boolean;
+  t: ReturnType<typeof useTranslation>;
 }) {
   const isGenerating =
     accepting ||
@@ -135,15 +149,15 @@ function MediaPreview({
   if (isGenerating) {
     return (
       <div className="media-preview-generating">
-        {activeJob ? <OptionMediaProgress job={activeJob} /> : <p className="meta">Generating…</p>}
+        {activeJob ? <OptionMediaProgress job={activeJob} /> : <p className="meta">{t.generating}</p>}
       </div>
     );
   }
   return (
     <div className="media-preview-empty">
-      <p className="meta">{option.formatLabel ?? (option.kind === "video" ? "Video" : "Image")}</p>
+      <p className="meta">{option.formatLabel ?? (option.kind === "video" ? t.video : t.image)}</p>
       {option.generationError ? <p className="error-text">{option.generationError}</p> : null}
-      <p>Preview will appear here after you accept.</p>
+      <p>{t.previewAfterAccept}</p>
     </div>
   );
 }
@@ -171,9 +185,14 @@ export function PostOptionsList({
   onAcceptPrompt?: (target: MediaPromptTarget, draft: OptionDraft) => void | Promise<void>;
   onRegeneratePrompt?: (target: MediaPromptTarget, field: RegenerateField) => void | Promise<void>;
 }) {
+  const { preferredLocale } = useLocale();
+  const t = useTranslation();
+  const platforms = usePostPlatforms();
+  const postTypes = usePostTypes();
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [nextSetup, setNextSetup] = useState<PostSetup>({ platform: "instagram", postFormat: "image" });
-  const options = buildPostOptions(idea);
+  const setupLabel = usePostSetupLabel(nextSetup);
+  const options = buildPostOptions(idea, preferredLocale, t.shareFallbackCaption, t.optionLabel);
   const locked = mediaGenerating ?? isMediaGenerating(options, mediaJobs);
 
   async function handleCopy(option: PostOption) {
@@ -196,14 +215,12 @@ export function PostOptionsList({
     <section className={`post-options panel panel-padding${locked ? " post-options-locked" : ""}`}>
       <div className="post-options-header">
         <div>
-          <p className="meta section-eyebrow">{options.length ? "Generated options" : "Post composer"}</p>
+          <p className="meta section-eyebrow">{options.length ? t.generatedOptions : t.composerEyebrow}</p>
           <h2 className="section-title" style={{ margin: 0 }}>
-            {options.length ? "Your post options" : "Generate your first option"}
+            {options.length ? t.yourPostOptions : t.generateFirstOption}
           </h2>
           <p className="meta">
-            {locked
-              ? "Media is generating — all options are paused until it finishes."
-              : "Review each image or video prompt before generation. Mix platforms and formats freely in one list."}
+            {locked ? t.mediaGeneratingLocked : t.reviewPromptHint}
           </p>
         </div>
       </div>
@@ -211,7 +228,7 @@ export function PostOptionsList({
       <div className="post-options-list">
         {options.length === 0 ? (
           <div className="post-option-empty panel panel-padding">
-            <p className="meta">No options yet. Choose a setup below and generate your first post.</p>
+            <p className="meta">{t.noOptionsYet}</p>
           </div>
         ) : null}
 
@@ -238,8 +255,10 @@ export function PostOptionsList({
             >
               <div className="post-option-header">
                 <div>
-                  <span className="badge badge-accent">Option {index + 1}</span>
-                  <span className="badge">{setupLabelForOption(option.platform, option.postFormat)}</span>
+                  <span className="badge badge-accent">{t.optionLabel(index + 1)}</span>
+                  <span className="badge">
+                    {setupLabelForOption(option.platform, option.postFormat, platforms, postTypes)}
+                  </span>
                   {option.formatLabel ? <span className="badge">{option.formatLabel}</span> : null}
                 </div>
                 {option.platform === "instagram" ? (
@@ -251,7 +270,7 @@ export function PostOptionsList({
                     onClick={() => handleCopy(option)}
                     disabled={lockedByOther || !hasMedia}
                   >
-                    {copiedId === option.id ? "Copied" : "Copy for posting"}
+                    {copiedId === option.id ? t.copied : t.copyForPosting}
                   </button>
                 )}
               </div>
@@ -270,6 +289,7 @@ export function PostOptionsList({
                         option={option}
                         activeJob={activeJob}
                         accepting={promptBusy && !regeneratingField}
+                        t={t}
                       />
                     }
                     onRegenerate={(field) => {
@@ -289,11 +309,11 @@ export function PostOptionsList({
       {onGenerate ? (
         <div className="post-generate-more panel panel-padding">
           <div className="post-generate-more-copy">
-            <p className="meta section-eyebrow">Generate</p>
+            <p className="meta section-eyebrow">{t.generate}</p>
             <h3 className="section-title" style={{ margin: "0 0 8px" }}>
-              Add another option
+              {t.addAnotherOption}
             </h3>
-            <p className="meta">Choose platform and post type for the next output. You can mix formats freely.</p>
+            <p className="meta">{t.addAnotherHint}</p>
           </div>
           <PostSetupPicker value={nextSetup} onChange={setNextSetup} disabled={generating || locked} compact />
           <div className="button-row">
@@ -303,7 +323,7 @@ export function PostOptionsList({
               onClick={() => onGenerate(nextSetup)}
               disabled={generating || locked}
             >
-              {generating ? "Generating…" : `Generate ${postSetupLabel(nextSetup)}`}
+              {generating ? t.generating : `${t.generate} ${setupLabel}`}
             </button>
           </div>
         </div>
@@ -311,16 +331,16 @@ export function PostOptionsList({
 
       {idea?.video_recommendation && idea.video_recommendations.length === 0 ? (
         <div className="video-brief panel panel-padding" style={{ marginTop: 16 }}>
-          <h3 className="section-title">Video storyboard</h3>
+          <h3 className="section-title">{t.videoStoryboard}</h3>
           <p>{idea.video_recommendation.hook}</p>
           <div className="video-scene-list">
             {idea.video_recommendation.scenes.map((scene) => (
               <article key={scene.scene_number} className="video-scene-card">
                 {scene.generated_frame_url ? (
-                  <img src={scene.generated_frame_url} alt={`Scene ${scene.scene_number}`} loading="lazy" />
+                  <img src={scene.generated_frame_url} alt={t.sceneLabel(scene.scene_number)} loading="lazy" />
                 ) : null}
                 <div>
-                  <strong>Scene {scene.scene_number}</strong>
+                  <strong>{t.sceneLabel(scene.scene_number)}</strong>
                   <p>{scene.visual_prompt}</p>
                 </div>
               </article>

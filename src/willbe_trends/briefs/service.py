@@ -3,6 +3,14 @@ import re
 import uuid
 from datetime import datetime, timezone
 
+from willbe_trends.briefs.locales import (
+    caption_for_locale,
+    fallback_caption,
+    locale_candidates,
+    locale_rules,
+    resolve_preferred_locale,
+    shell_why_now,
+)
 from willbe_trends.briefs.prompts import platform_brief_system_prompt
 from willbe_trends.config import Settings, get_settings
 from willbe_trends.db.models import BriefItemRow, ResearchReportRow
@@ -70,14 +78,6 @@ def _sum_usage(parts: list[LLMUsageStats | None]) -> LLMUsageStats | None:
     )
 
 
-def _locale_candidates(region: str) -> list[str]:
-    region_lower = region.lower()
-    if "fin" in region_lower:
-        return ["en", "fi"]
-    if "viet" in region_lower:
-        return ["en", "vi"]
-    return ["en"]
-
 
 def _brief_item_prompt(
     *,
@@ -140,18 +140,33 @@ def score_trend(trend: TrendSignal, citations: list[WebCitation]) -> float:
     return round(0.5 * confidence_score + 0.35 * evidence_score + 0.15 * richness_score, 4)
 
 
-def _platform_review_from_payload(payload: dict, platform: SocialPlatform) -> PlatformPostReview:
+def _platform_review_from_payload(
+    payload: dict,
+    platform: SocialPlatform,
+    preferred_locale: str,
+) -> PlatformPostReview:
     review = payload.get("platform_review") or {}
     captions = payload.get("captions", [])
-    fallback_caption = captions[0].get("caption", "") if captions else ""
+    matched = caption_for_locale(
+        [BriefCaption.model_validate(item) for item in captions],
+        preferred_locale,
+    )
+    fallback_caption_text = matched.caption if matched else ""
+    if not fallback_caption_text and captions:
+        fallback_caption_text = captions[0].get("caption", "")
     default_format = "tiktok_video" if platform == "tiktok" else "instagram_feed"
+    default_hook = (
+        "Mở đầu bằng cận cảnh móng đẹp nhất của bạn."
+        if preferred_locale == "vi"
+        else "Lead with your best nail close-up."
+    )
     return PlatformPostReview(
         platform=platform,
         content_format=review.get("content_format", default_format),
         strengths=review.get("strengths", [])[:4],
         improvements=review.get("improvements", [])[:4],
-        hook=review.get("hook", fallback_caption[:120] or "Lead with your best nail close-up."),
-        caption=review.get("caption", fallback_caption),
+        hook=review.get("hook", fallback_caption_text[:120] or default_hook),
+        caption=review.get("caption", fallback_caption_text),
         hashtags=(review.get("hashtags") or payload.get("hashtags", []))[:10],
         posting_checklist=review.get("posting_checklist", [])[:6],
         sound_strategy=review.get("sound_strategy"),
@@ -270,12 +285,13 @@ def _idea_from_payload(
     *,
     platform: SocialPlatform,
     post_format: PostFormat = "image",
+    preferred_locale: str = "en",
 ) -> tuple[str, str, str | None, ContentIdea]:
     captions = [BriefCaption.model_validate(item) for item in payload.get("captions", [])]
     if not captions:
-        captions = [BriefCaption(locale="en", caption="Show the trend with your latest salon work.")]
+        captions = [fallback_caption(preferred_locale)]
 
-    platform_review = _platform_review_from_payload(payload, platform)
+    platform_review = _platform_review_from_payload(payload, platform, preferred_locale)
     idea = ContentIdea(
         id=str(uuid.uuid4()),
         platform=platform,
@@ -403,6 +419,10 @@ def _regenerate_context(prior: ContentIdea | None) -> str:
     return "\n".join(lines)
 
 
+def _locale_candidates(region: str, preferred_locale: str | None = None) -> list[str]:
+    return locale_candidates(region, preferred_locale)
+
+
 async def build_brief_item(
     *,
     llm: LLMProvider,
@@ -416,10 +436,16 @@ async def build_brief_item(
     locales: list[str],
     platform: SocialPlatform = "instagram",
     post_format: PostFormat = "image",
+    preferred_locale: str | None = None,
     settings: Settings | None = None,
 ) -> tuple[BriefItem, LLMResponse]:
+    resolved_locale = resolve_preferred_locale(region, preferred_locale)
     response = await llm.complete(
-        system=platform_brief_system_prompt(platform, post_format),
+        system=platform_brief_system_prompt(
+            platform,
+            post_format,
+            locale_rules_text=locale_rules(resolved_locale, locales),
+        ),
         user=_brief_item_prompt(
             trend=trend,
             report_summary=report_summary,
@@ -437,6 +463,7 @@ async def build_brief_item(
         payload,
         platform=platform,
         post_format=post_format,
+        preferred_locale=resolved_locale,
     )
     item = BriefItem(
         id=str(uuid.uuid4()),
@@ -496,6 +523,7 @@ def create_brief_shell_for_trend(
     *,
     row: ResearchReportRow,
     trend_name: str,
+    preferred_locale: str | None = None,
 ) -> TrendBrief:
     trend_row = find_trend_in_report(row, trend_name)
     if trend_row is None:
@@ -504,12 +532,13 @@ def create_brief_shell_for_trend(
     citations = _report_citations(row)
     trend = _trend_row_to_signal(trend_row)
     score = score_trend(trend, citations)
+    resolved_locale = resolve_preferred_locale(row.region, preferred_locale)
     item = BriefItem(
         id=str(uuid.uuid4()),
         rank=1,
         score=score,
         evidence_summary=row.summary,
-        why_now="Pick a platform and post type below, then generate your first option.",
+        why_now=shell_why_now(resolved_locale),
         caveats=None,
         trend=trend,
         content_idea=None,
@@ -536,6 +565,7 @@ async def generate_brief_for_trend(
     trend_name: str,
     platform: SocialPlatform = "instagram",
     post_format: PostFormat = "image",
+    preferred_locale: str | None = None,
     settings: Settings | None = None,
 ) -> TrendBrief:
     trend_row = find_trend_in_report(row, trend_name)
@@ -545,7 +575,7 @@ async def generate_brief_for_trend(
     citations = _report_citations(row)
     trend = _trend_row_to_signal(trend_row)
     score = score_trend(trend, citations)
-    locales = _locale_candidates(row.region)
+    locales = _locale_candidates(row.region, preferred_locale)
     item, response = await build_brief_item(
         llm=llm,
         trend=trend,
@@ -558,6 +588,7 @@ async def generate_brief_for_trend(
         locales=locales,
         platform=platform,
         post_format=post_format,
+        preferred_locale=preferred_locale,
         settings=settings,
     )
     platform_label = "Instagram" if platform == "instagram" else "TikTok"
@@ -584,6 +615,7 @@ async def generate_brief_from_report(
     max_trends: int = 8,
     platform: SocialPlatform = "instagram",
     post_format: PostFormat = "image",
+    preferred_locale: str | None = None,
     settings: Settings | None = None,
 ) -> TrendBrief:
     citations = _report_citations(row)
@@ -599,7 +631,7 @@ async def generate_brief_from_report(
         reverse=True,
     )[:max_trends]
 
-    locales = _locale_candidates(row.region)
+    locales = _locale_candidates(row.region, preferred_locale)
     items: list[BriefItem] = []
     responses: list[LLMResponse] = []
     for index, (score, trend) in enumerate(ranked_trends, start=1):
@@ -615,6 +647,7 @@ async def generate_brief_from_report(
             locales=locales,
             platform=platform,
             post_format=post_format,
+            preferred_locale=preferred_locale,
             settings=settings,
         )
         items.append(item)
@@ -646,10 +679,13 @@ async def regenerate_content_idea_for_item(
     research_time: str,
     platform: SocialPlatform = "instagram",
     post_format: PostFormat | None = None,
+    preferred_locale: str | None = None,
     settings: Settings | None = None,
     prior_idea: ContentIdea | None = None,
 ) -> tuple[ContentIdea, LLMResponse]:
     resolved_format = post_format or (prior_idea.post_format if prior_idea else "image")
+    resolved_locale = resolve_preferred_locale(region, preferred_locale)
+    locales = _locale_candidates(region, preferred_locale)
     trend = TrendSignal(
         name=item.trend_name,
         description=item.trend_description,
@@ -664,7 +700,11 @@ async def regenerate_content_idea_for_item(
         image_alt=item.image_alt,
     )
     response = await llm.complete(
-        system=platform_brief_system_prompt(platform, resolved_format),
+        system=platform_brief_system_prompt(
+            platform,
+            resolved_format,
+            locale_rules_text=locale_rules(resolved_locale, locales),
+        ),
         user=_brief_item_prompt(
             trend=trend,
             report_summary=report_summary,
@@ -672,14 +712,19 @@ async def regenerate_content_idea_for_item(
             region=region,
             research_time=research_time,
             score=item.score,
-            locales=_locale_candidates(region),
+            locales=locales,
             platform=platform,
             post_format=resolved_format,
             regenerate_context=_regenerate_context(prior_idea),
         ),
     )
     payload = _extract_json_payload(response.content)
-    _, _, _, idea = _idea_from_payload(payload, platform=platform, post_format=resolved_format)
+    _, _, _, idea = _idea_from_payload(
+        payload,
+        platform=platform,
+        post_format=resolved_format,
+        preferred_locale=resolved_locale,
+    )
     if prior_idea is not None:
         idea = _merge_post_options(prior_idea, idea)
     return idea, response

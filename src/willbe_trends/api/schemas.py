@@ -24,6 +24,10 @@ class ResearchRunRequest(BaseModel):
     provider: LLMProviderName | None = None
     web_search: bool = True
     search_provider: SearchProviderName | None = None
+    preferred_locale: str | None = Field(
+        default=None,
+        description="Preferred output language for research copy (en, vi, fi).",
+    )
 
 
 class PersonalizedResearchRequest(ResearchRunRequest):
@@ -66,6 +70,10 @@ class ResearchListResponse(BaseModel):
 class BriefInitRequest(BaseModel):
     report_id: str
     trend_name: str = Field(description="Trend to open in the post composer.")
+    preferred_locale: str | None = Field(
+        default=None,
+        description="Preferred copy language for generated post content (en, vi, fi).",
+    )
 
 
 class BriefGenerateRequest(BaseModel):
@@ -84,6 +92,10 @@ class BriefGenerateRequest(BaseModel):
         description="Generate a still image post or a short-form video post.",
     )
     max_trends: int = Field(default=8, ge=1, le=12)
+    preferred_locale: str | None = Field(
+        default=None,
+        description="Preferred copy language for generated post content (en, vi, fi).",
+    )
 
 
 class ContentIdeaGenerateRequest(BaseModel):
@@ -91,6 +103,10 @@ class ContentIdeaGenerateRequest(BaseModel):
     provider: LLMProviderName | None = None
     platform: SocialPlatformName = "instagram"
     post_format: PostFormatName | None = None
+    preferred_locale: str | None = Field(
+        default=None,
+        description="Preferred copy language for generated post content (en, vi, fi).",
+    )
 
 
 class MediaJobOut(MediaJobStatus):
@@ -121,6 +137,10 @@ class MediaPromptAdjustRequest(MediaPromptTargetRequest):
 
 class MediaPromptRegenerateRequest(MediaPromptTargetRequest):
     field: Literal["prompt", "hook", "caption", "hashtags"] = "prompt"
+    preferred_locale: str | None = Field(
+        default=None,
+        description="Preferred copy language when regenerating hook, caption, or hashtags.",
+    )
 
 
 class MediaPromptActionOut(ContentIdeaOut):

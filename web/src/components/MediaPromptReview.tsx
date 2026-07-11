@@ -1,5 +1,6 @@
 import { useEffect, useState, type ReactNode } from "react";
 import type { RegenerateField } from "../api";
+import { useTranslation } from "../i18n/LocaleProvider";
 
 export type OptionDraft = {
   hook: string;
@@ -57,6 +58,10 @@ function DraftField({
   reloading,
   disabled,
   reloadLabel,
+  editLabel,
+  stopEditLabel,
+  doneEditingLabel,
+  loadingLabel,
   extraActions,
   onToggleEdit,
   onChange,
@@ -70,13 +75,16 @@ function DraftField({
   reloading?: boolean;
   disabled?: boolean;
   reloadLabel: string;
+  editLabel: string;
+  stopEditLabel: string;
+  doneEditingLabel: string;
+  loadingLabel: string;
   extraActions?: ReactNode;
   onToggleEdit: () => void;
   onChange: (value: string) => void;
   onReload: () => void;
 }) {
   const showLoading = reloading;
-  const loadingLabel = "Regenerating…";
 
   return (
     <div className={`media-prompt-field${showLoading ? " is-loading" : ""}${editing ? " is-editing" : ""}`}>
@@ -89,8 +97,8 @@ function DraftField({
             className={`button-icon${editing ? " active" : ""}`}
             onClick={() => onToggleEdit()}
             disabled={disabled || showLoading}
-            aria-label={editing ? `Stop editing ${label.toLowerCase()}` : `Edit ${label.toLowerCase()}`}
-            title={editing ? "Done editing" : `Edit ${label.toLowerCase()}`}
+            aria-label={editing ? stopEditLabel : editLabel}
+            title={editing ? doneEditingLabel : editLabel}
           >
             <PencilIcon />
           </button>
@@ -148,6 +156,7 @@ export function MediaPromptReview({
   onAccept: (draft: OptionDraft) => void | Promise<void>;
   onRegenerate: (field: RegenerateField) => void | Promise<void>;
 }) {
+  const t = useTranslation();
   const [draft, setDraft] = useState(initialDraft);
   const [editingFields, setEditingFields] = useState<Set<DraftFieldKey>>(new Set());
 
@@ -156,7 +165,6 @@ export function MediaPromptReview({
     setEditingFields(new Set());
   }, [initialDraft]);
 
-  const mediaLabel = kind === "video" ? "video" : "image";
   const formLocked = disabled || accepting || mediaBusy;
 
   function updateField<K extends keyof OptionDraft>(field: K, value: OptionDraft[K]) {
@@ -181,6 +189,7 @@ export function MediaPromptReview({
   function fieldProps(field: DraftFieldKey, label: string, rows: number, placeholder: string) {
     const draftKey = field === "hashtags" ? "hashtagsText" : field;
     const fieldLocked = disabled || mediaBusy || regeneratingField === field;
+    const lowerLabel = label.toLowerCase();
     return {
       label,
       rows,
@@ -188,7 +197,11 @@ export function MediaPromptReview({
       editing: editingFields.has(field),
       reloading: regeneratingField === field,
       disabled: fieldLocked,
-      reloadLabel: `Regenerate ${label.toLowerCase()}`,
+      reloadLabel: t.regenerateField(lowerLabel),
+      editLabel: t.editField(lowerLabel),
+      stopEditLabel: t.stopEditingField(lowerLabel),
+      doneEditingLabel: t.doneEditing,
+      loadingLabel: t.regenerating,
       value: draft[draftKey as keyof OptionDraft],
       onToggleEdit: () => toggleEdit(field),
       onChange: (value: string) => updateField(draftKey as keyof OptionDraft, value),
@@ -200,16 +213,16 @@ export function MediaPromptReview({
     <div className="media-prompt-review-layout">
       <div className="media-prompt-fields">
         <div className="media-prompt-review-header">
-          <p className="meta section-eyebrow">Review before generating</p>
-          <h4>Your {mediaLabel} prompt</h4>
-          <p className="meta">Reload any field for a fresh suggestion, or edit before you accept.</p>
+          <p className="meta section-eyebrow">{t.reviewBeforeGenerating}</p>
+          <h4>{t.yourPrompt(kind)}</h4>
+          <p className="meta">{t.reviewHint}</p>
         </div>
 
-        <DraftField {...fieldProps("hook", "Hook", 2, "Opening line or first-frame hook")} />
-        <DraftField {...fieldProps("caption", "Caption", 4, "Platform-ready caption")} />
-        <DraftField {...fieldProps("hashtags", "Hashtags", 2, "#nailtrend, #saloninspo")} />
+        <DraftField {...fieldProps("hook", t.hook, 2, t.hookPlaceholder)} />
+        <DraftField {...fieldProps("caption", t.caption, 4, t.captionPlaceholder)} />
+        <DraftField {...fieldProps("hashtags", t.hashtags, 2, t.hashtagsPlaceholder)} />
         <DraftField
-          {...fieldProps("prompt", "Generation prompt", 5, "Describe the image or video to generate")}
+          {...fieldProps("prompt", t.generationPrompt, 5, t.promptPlaceholder)}
           extraActions={
             <button
               type="button"
@@ -219,7 +232,7 @@ export function MediaPromptReview({
                 formLocked || regeneratingField !== null || !draft.prompt.trim() || !draft.caption.trim()
               }
             >
-              {accepting || mediaBusy ? "Generating…" : "Generate"}
+              {accepting || mediaBusy ? t.generating : t.generate}
             </button>
           }
         />

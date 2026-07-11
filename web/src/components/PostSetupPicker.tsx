@@ -1,47 +1,32 @@
 import type { PostFormat, SocialPlatform } from "../types";
+import { useTranslation } from "../i18n/LocaleProvider";
 
 export type PostSetup = {
   platform: SocialPlatform;
   postFormat: PostFormat;
 };
 
-export const POST_PLATFORMS: {
-  id: SocialPlatform;
-  label: string;
-  description: string;
-}[] = [
-  {
-    id: "instagram",
-    label: "Instagram",
-    description: "Feed posts, carousels, and Reels.",
-  },
-  {
-    id: "tiktok",
-    label: "TikTok",
-    description: "Short vertical clips for discovery.",
-  },
-];
+export function usePostPlatforms() {
+  const t = useTranslation();
+  return [
+    { id: "instagram" as const, label: t.instagram, description: t.instagramDesc },
+    { id: "tiktok" as const, label: t.tiktok, description: t.tiktokDesc },
+  ];
+}
 
-export const POST_TYPES: {
-  id: PostFormat;
-  label: string;
-  description: string;
-}[] = [
-  {
-    id: "image",
-    label: "Text with images",
-    description: "Caption, hashtags, and a salon still image.",
-  },
-  {
-    id: "video",
-    label: "Video",
-    description: "Short vertical clip with hook and caption.",
-  },
-];
+export function usePostTypes() {
+  const t = useTranslation();
+  return [
+    { id: "image" as const, label: t.textWithImages, description: t.textWithImagesDesc },
+    { id: "video" as const, label: t.videoPost, description: t.videoPostDesc },
+  ];
+}
 
-export function postSetupLabel(setup: PostSetup) {
-  const platform = POST_PLATFORMS.find((item) => item.id === setup.platform)?.label ?? setup.platform;
-  const type = POST_TYPES.find((item) => item.id === setup.postFormat)?.label ?? setup.postFormat;
+export function usePostSetupLabel(setup: PostSetup) {
+  const platforms = usePostPlatforms();
+  const postTypes = usePostTypes();
+  const platform = platforms.find((item) => item.id === setup.platform)?.label ?? setup.platform;
+  const type = postTypes.find((item) => item.id === setup.postFormat)?.label ?? setup.postFormat;
   return `${platform} · ${type}`;
 }
 
@@ -58,12 +43,16 @@ export function PostSetupPicker({
   lockFormat?: boolean;
   compact?: boolean;
 }) {
+  const t = useTranslation();
+  const platforms = usePostPlatforms();
+  const postTypes = usePostTypes();
+
   return (
     <div className={`post-setup-picker${compact ? " compact" : ""}`}>
       <fieldset className="post-setup-field" disabled={disabled}>
-        <legend>Platform</legend>
+        <legend>{t.platformLegend}</legend>
         <div className={`platform-picker${compact ? " compact" : ""}`}>
-          {POST_PLATFORMS.map((option) => (
+          {platforms.map((option) => (
             <button
               key={option.id}
               type="button"
@@ -80,11 +69,11 @@ export function PostSetupPicker({
 
       <fieldset className="post-setup-field" disabled={disabled || lockFormat}>
         <legend>
-          Post type
-          {lockFormat ? <span className="post-setup-locked">Locked for this post</span> : null}
+          {t.postTypeLegend}
+          {lockFormat ? <span className="post-setup-locked">{t.lockedForPost}</span> : null}
         </legend>
         <div className={`platform-picker${compact ? " compact" : ""}`}>
-          {POST_TYPES.map((option) => (
+          {postTypes.map((option) => (
             <button
               key={option.id}
               type="button"

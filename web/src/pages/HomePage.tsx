@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { listResearch } from "../api";
 import { UsageStats } from "../components/UsageStats";
+import { useTranslation } from "../i18n/LocaleProvider";
 import type { ResearchListItem } from "../types";
 
 function formatDate(value: string) {
@@ -12,6 +13,7 @@ function formatDate(value: string) {
 }
 
 export function HomePage() {
+  const t = useTranslation();
   const [items, setItems] = useState<ResearchListItem[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -30,30 +32,27 @@ export function HomePage() {
   return (
     <>
       <section className="hero">
-        <h1>Research reports</h1>
-        <p>
-          Browse saved nail trend analyses from neutral and personalized runs, complete with
-          web sources and model metadata.
-        </p>
+        <h1>{t.homeTitle}</h1>
+        <p>{t.homeSubtitle}</p>
       </section>
 
-      {loading ? <div className="loading panel panel-padding">Loading reports…</div> : null}
+      {loading ? <div className="loading panel panel-padding">{t.loadingReports}</div> : null}
       {error ? <div className="error panel panel-padding">{error}</div> : null}
 
       {!loading && !error ? (
         <section className="panel panel-padding">
           <div className="report-card-top" style={{ marginBottom: 18 }}>
             <h2 className="section-title" style={{ margin: 0 }}>
-              Saved runs
+              {t.savedRuns}
             </h2>
-            <span className="meta">{total} total</span>
+            <span className="meta">{t.totalCount(total)}</span>
           </div>
 
           {items.length === 0 ? (
             <div className="empty-state">
-              <p>No reports yet.</p>
+              <p>{t.noReports}</p>
               <Link to="/new" className="button button-primary" style={{ display: "inline-block", marginTop: 12 }}>
-                Run your first research
+                {t.runFirstResearch}
               </Link>
             </div>
           ) : (
@@ -86,7 +85,7 @@ export function HomePage() {
                       </div>
                       <p>{item.summary}</p>
                       <div className="meta">
-                        {item.trend_count} trends · {item.image_count} images · {item.citation_count}{" "}
+                        {t.trends(item.trend_count)} · {item.image_count} images · {item.citation_count}{" "}
                         sources · {item.llm_provider}/{item.llm_model}
                         {item.llm_usage ? (
                           <>

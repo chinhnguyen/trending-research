@@ -1,6 +1,7 @@
 import { FormEvent, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { runNeutralResearch, runPersonalizedResearch } from "../api";
+import { useLocale, useTranslation } from "../i18n/LocaleProvider";
 import type { UserPreferences } from "../types";
 
 const defaultPreferences: UserPreferences = {
@@ -23,6 +24,8 @@ const defaultResearchTime = new Intl.DateTimeFormat("en-US", {
 
 export function NewResearchPage() {
   const navigate = useNavigate();
+  const { preferredLocale } = useLocale();
+  const t = useTranslation();
   const [mode, setMode] = useState<"neutral" | "personalized">("neutral");
   const [provider, setProvider] = useState("openai");
   const [region, setRegion] = useState("global");
@@ -49,6 +52,7 @@ export function NewResearchPage() {
       research_time: researchTime,
       provider,
       web_search: webSearch,
+      preferred_locale: preferredLocale,
     };
 
     try {
@@ -66,7 +70,7 @@ export function NewResearchPage() {
             });
       navigate(`/reports/${result.id}`);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Research failed");
+      setError(err instanceof Error ? err.message : t.researchFailed);
     } finally {
       setLoading(false);
     }
@@ -75,8 +79,8 @@ export function NewResearchPage() {
   return (
     <>
       <section className="hero">
-        <h1>New research</h1>
-        <p>Run a fresh trend analysis with web search and save the result to the database.</p>
+        <h1>{t.newResearchTitle}</h1>
+        <p>{t.newResearchSubtitle}</p>
       </section>
 
       <form className="panel panel-padding form-grid" onSubmit={handleSubmit}>
@@ -84,12 +88,12 @@ export function NewResearchPage() {
           <div className="field">
             <label htmlFor="mode">Mode</label>
             <select id="mode" value={mode} onChange={(e) => setMode(e.target.value as typeof mode)}>
-              <option value="neutral">Neutral trending</option>
-              <option value="personalized">Personalized — you may like it</option>
+              <option value="neutral">{t.modeNeutral}</option>
+              <option value="personalized">{t.modePersonalized}</option>
             </select>
           </div>
           <div className="field">
-            <label htmlFor="provider">LLM provider</label>
+            <label htmlFor="provider">{t.provider}</label>
             <select id="provider" value={provider} onChange={(e) => setProvider(e.target.value)}>
               <option value="openai">OpenAI</option>
               <option value="anthropic">Anthropic</option>
@@ -100,11 +104,11 @@ export function NewResearchPage() {
 
         <div className="inline-fields">
           <div className="field">
-            <label htmlFor="region">Region</label>
+            <label htmlFor="region">{t.region}</label>
             <input id="region" value={region} onChange={(e) => setRegion(e.target.value)} />
           </div>
           <div className="field">
-            <label htmlFor="research-time">Time period</label>
+            <label htmlFor="research-time">{t.researchTime}</label>
             <input
               id="research-time"
               value={researchTime}
@@ -116,7 +120,7 @@ export function NewResearchPage() {
 
         <div className="inline-fields">
           <div className="field">
-            <label htmlFor="web-search">Web search</label>
+            <label htmlFor="web-search">{t.webSearch}</label>
             <select
               id="web-search"
               value={webSearch ? "on" : "off"}
@@ -131,7 +135,7 @@ export function NewResearchPage() {
         {mode === "personalized" ? (
           <>
             <div className="field">
-              <label htmlFor="display-name">Display name</label>
+              <label htmlFor="display-name">{t.displayName}</label>
               <input
                 id="display-name"
                 value={displayName}
@@ -139,7 +143,7 @@ export function NewResearchPage() {
               />
             </div>
             <div className="field">
-              <label htmlFor="favorite-colors">Favorite colors (comma-separated)</label>
+              <label htmlFor="favorite-colors">{t.favoriteColors}</label>
               <input
                 id="favorite-colors"
                 value={favoriteColors}
@@ -147,7 +151,7 @@ export function NewResearchPage() {
               />
             </div>
             <div className="field">
-              <label htmlFor="style-keywords">Style keywords (comma-separated)</label>
+              <label htmlFor="style-keywords">{t.styleKeywords}</label>
               <input
                 id="style-keywords"
                 value={styleKeywords}
@@ -160,7 +164,7 @@ export function NewResearchPage() {
         {error ? <div className="error">{error}</div> : null}
 
         <button className="button button-primary" type="submit" disabled={loading}>
-          {loading ? "Running research…" : "Run and save"}
+          {loading ? t.running : t.runResearch}
         </button>
       </form>
     </>

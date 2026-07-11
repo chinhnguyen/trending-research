@@ -42,7 +42,11 @@ def init_brief(
     if row is None:
         raise HTTPException(status_code=404, detail="Research report not found")
     try:
-        brief = create_brief_shell_for_trend(row=row, trend_name=request.trend_name)
+        brief = create_brief_shell_for_trend(
+            row=row,
+            trend_name=request.trend_name,
+            preferred_locale=request.preferred_locale,
+        )
     except ValueError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     saved = save_brief(db, brief)
@@ -68,6 +72,7 @@ async def generate_brief(
                 trend_name=request.trend_name,
                 platform=request.platform,
                 post_format=request.post_format,
+                preferred_locale=request.preferred_locale,
                 settings=settings,
             )
         except ValueError as exc:
@@ -79,6 +84,7 @@ async def generate_brief(
             max_trends=request.max_trends,
             platform=request.platform,
             post_format=request.post_format,
+            preferred_locale=request.preferred_locale,
             settings=settings,
         )
     saved = save_brief(db, brief)
@@ -132,6 +138,7 @@ async def generate_content_idea(
         research_time=report.research_time or "",
         platform=request.platform,
         post_format=request.post_format,
+        preferred_locale=request.preferred_locale,
         settings=settings,
         prior_idea=prior,
     )

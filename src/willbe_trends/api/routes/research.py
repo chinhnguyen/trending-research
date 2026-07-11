@@ -121,6 +121,7 @@ async def run_neutral_research(
         region=request.region,
         research_time=request.research_time,
         web_search=request.web_search,
+        preferred_locale=request.preferred_locale,
         settings=settings,
     )
     row = save_report(
@@ -153,6 +154,7 @@ async def run_personalized_research(
         region=request.region,
         research_time=request.research_time,
         web_search=request.web_search,
+        preferred_locale=request.preferred_locale,
         settings=settings,
     )
     row = save_report(

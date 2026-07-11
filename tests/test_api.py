@@ -265,16 +265,19 @@ class StubBriefLLM(LLMProvider):
     name = "stub"
 
     async def complete(self, system: str, user: str) -> LLMResponse:
+        is_vi = "Primary copy language: Vietnamese" in system
         if "Return a fresh hook" in user:
+            hook = "Hook làm mới cho feed salon của bạn." if is_vi else "Reloaded hook for your salon feed."
             return LLMResponse(
-                content='{"hook": "Reloaded hook for your salon feed."}',
+                content=f'{{"hook": "{hook}"}}',
                 provider="stub",
                 model="stub-model",
                 usage=LLMUsageStats(prompt_tokens=20, completion_tokens=10, total_tokens=30, estimated_cost_usd=0),
             )
         if "Return a fresh caption" in user:
+            caption = "Chú thích làm mới với góc salon mới." if is_vi else "Reloaded caption with a fresh salon angle."
             return LLMResponse(
-                content='{"caption": "Reloaded caption with a fresh salon angle."}',
+                content=f'{{"caption": "{caption}"}}',
                 provider="stub",
                 model="stub-model",
                 usage=LLMUsageStats(prompt_tokens=20, completion_tokens=10, total_tokens=30, estimated_cost_usd=0),
@@ -304,15 +307,24 @@ class StubBriefLLM(LLMProvider):
             else "Salon manicure with soft chrome finish, clean background"
         )
         hook = (
-            "A fresh angle on chrome nails for your feed."
+            "Góc mới cho móng chrome trên feed của bạn."
+            if is_regeneration and is_vi
+            else "A fresh angle on chrome nails for your feed."
             if is_regeneration
-            else "Chrome nails that catch the light instantly."
+            else ("Móng chrome bắt sáng ngay lập tức." if is_vi else "Chrome nails that catch the light instantly.")
         )
         caption = (
-            "New caption: soft chrome, salon-perfect, book your glow-up."
+            "Chú thích mới: chrome mềm, hoàn hảo salon, đặt lịch glow-up."
+            if is_regeneration and is_vi
+            else "New caption: soft chrome, salon-perfect, book your glow-up."
             if is_regeneration
-            else "Fresh trend, polished finish, salon-ready now."
+            else (
+                "Xu hướng mới, hoàn thiện salon, sẵn sàng đặt lịch."
+                if is_vi
+                else "Fresh trend, polished finish, salon-ready now."
+            )
         )
+        locale = "vi" if is_vi else "en"
         if is_video:
             return LLMResponse(
                 content=f"""
@@ -321,7 +333,7 @@ class StubBriefLLM(LLMProvider):
                   "why_now": "The trend is timely and visible across current inspiration sources.",
                   "caveats": null,
                   "angles": ["Showcase the finish", "Pair with a seasonal offer", "Use a close-up reel hook"],
-                  "captions": [{{"locale": "en", "caption": "{caption}", "cta": "Book this week"}}],
+                  "captions": [{{"locale": "{locale}", "caption": "{caption}", "cta": "Book this week"}}],
                   "hashtags": ["#nailtrend", "#saloninspo", "#booknow"],
                   "posting_tip": "Pair the caption with your latest close-up client set.",
                   "service_suggestion": "Signature chrome refresh",
@@ -378,7 +390,7 @@ class StubBriefLLM(LLMProvider):
               "why_now": "The trend is timely and visible across current inspiration sources.",
               "caveats": null,
               "angles": ["Showcase the finish", "Pair with a seasonal offer", "Use a close-up reel hook"],
-              "captions": [{{"locale": "en", "caption": "{caption}", "cta": "Book this week"}}],
+              "captions": [{{"locale": "{locale}", "caption": "{caption}", "cta": "Book this week"}}],
               "hashtags": ["#nailtrend", "#saloninspo", "#booknow"],
               "posting_tip": "Pair the caption with your latest close-up client set.",
               "service_suggestion": "Signature chrome refresh",
@@ -537,6 +549,64 @@ def test_brief_generation_and_idea_regeneration(tmp_path, monkeypatch):
     refetched_idea = refetched.json()["items"][0]["content_idea"]
     assert refetched_idea["platform_review"]["hook"] == "A fresh angle on chrome nails for your feed."
     assert len(refetched_idea["image_recommendations"]) == 2
+
+    get_settings.cache_clear()
+    db_models._engine = None
+    db_models._session_factory = None
+
+
+def test_brief_vietnamese_locale(tmp_path, monkeypatch):
+    db_path = tmp_path / "vi-test.db"
+    monkeypatch.setenv("WILLBE_DATABASE_URL", f"sqlite:///{db_path}")
+
+    from willbe_trends.config import get_settings
+    import willbe_trends.db.models as db_models
+    import willbe_trends.api.routes.briefs as brief_routes
+
+    get_settings.cache_clear()
+    db_models._engine = None
+    db_models._session_factory = None
+    db_models.init_db()
+    session = db_models.SessionLocal()
+
+    report = TrendReport(
+        category=TrendCategory.NAILS,
+        mode="neutral",
+        research_time="July 2026",
+        summary="Chrome finishes are trending in Vietnam salons.",
+        trends=[
+            TrendSignal(
+                name="Soft Chrome",
+                description="Milky bases with reflective chrome finishes.",
+                popularity="rising",
+                confidence=0.86,
+            )
+        ],
+        generated_at="2026-07-04T12:00:00+00:00",
+        llm_provider="openai",
+        llm_model="gpt-4o-mini",
+    )
+    row = save_report(session, report, region="Vietnam", web_search_enabled=True)
+    session.close()
+
+    monkeypatch.setattr(brief_routes, "create_provider", lambda provider=None, settings=None: StubBriefLLM())
+    client = TestClient(create_app())
+
+    created = client.post(
+        "/api/briefs/generate",
+        json={
+            "report_id": row.id,
+            "trend_name": "Soft Chrome",
+            "platform": "instagram",
+            "preferred_locale": "vi",
+        },
+    )
+    assert created.status_code == 200
+    brief = created.json()
+    idea = brief["items"][0]["content_idea"]
+    assert idea["captions"][0]["locale"] == "vi"
+    assert idea["platform_review"]["hook"] == "Móng chrome bắt sáng ngay lập tức."
+    assert idea["image_recommendations"][0]["caption"] == "Xu hướng mới, hoàn thiện salon, sẵn sàng đặt lịch."
 
     get_settings.cache_clear()
     db_models._engine = None

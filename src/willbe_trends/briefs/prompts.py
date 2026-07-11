@@ -105,7 +105,12 @@ Platform: TikTok
 - sound_strategy should suggest trending sound type or original audio approach."""
 
 
-def platform_brief_system_prompt(platform: SocialPlatform, post_format: str = "image") -> str:
+def platform_brief_system_prompt(
+    platform: SocialPlatform,
+    post_format: str = "image",
+    *,
+    locale_rules_text: str = "",
+) -> str:
     if platform == "instagram":
         platform_rules = _INSTAGRAM_VIDEO_RULES if post_format == "video" else _INSTAGRAM_IMAGE_RULES
     else:
@@ -117,6 +122,8 @@ def platform_brief_system_prompt(platform: SocialPlatform, post_format: str = "i
         if post_format == "video"
         else "image_recommendations must contain exactly one post variant with unique hook, caption, hashtags, and prompt."
     )
+
+    locale_block = f"\n{locale_rules_text}\n" if locale_rules_text else ""
 
     return f"""You are a beauty trend strategist helping salon owners turn evidence-backed trends into a platform-specific social post brief.
 Return ONLY valid JSON with this shape:
@@ -136,7 +143,7 @@ Return ONLY valid JSON with this shape:
 {media_shape}
 }}
 {platform_rules}
-Rules:
+{locale_block}Rules:
 - Ground every claim in the provided report trend and citations.
 - Do not invent statistics or unsupported sources.
 - Captions should sound warm, concise, and human.
@@ -159,13 +166,22 @@ Rules:
 - Do not return markdown or commentary."""
 
 
-def media_copy_regenerate_system_prompt(field: str, *, platform: str) -> str:
+def media_copy_regenerate_system_prompt(field: str, *, platform: str, preferred_locale: str = "en") -> str:
+    from willbe_trends.briefs.locales import LOCALE_NAMES, resolve_preferred_locale
+
     shapes = {
         "hook": '{"hook": "opening line or first-frame hook"}',
         "caption": '{"caption": "platform-ready caption"}',
         "hashtags": '{"hashtags": ["#tag"]}',
     }
     shape = shapes[field]
+    preferred = resolve_preferred_locale("", preferred_locale)
+    language_name = LOCALE_NAMES.get(preferred, preferred)
+    language_rule = (
+        f"- Write the {field} in {language_name} ({preferred})."
+        if preferred != "en"
+        else ""
+    )
     return f"""You rewrite one part of a salon social post for {platform}.
 Return ONLY valid JSON:
 {shape}
@@ -173,4 +189,5 @@ Rules:
 - Ground the copy in the supplied trend and post context.
 - Sound warm, concise, and human — like a real salon owner posting.
 - For hashtags, return 3-6 discovery-friendly tags with # prefix.
+{language_rule}
 - Do not return markdown or commentary."""

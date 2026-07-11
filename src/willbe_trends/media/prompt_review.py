@@ -1,6 +1,7 @@
 import json
 from typing import Literal
 
+from willbe_trends.briefs.locales import resolve_preferred_locale
 from willbe_trends.briefs.prompts import media_copy_regenerate_system_prompt, media_prompt_regenerate_system_prompt
 from willbe_trends.llm.base import LLMProvider
 from willbe_trends.models.briefs import ContentIdea, ImageRecommendation, ShortVideoRecommendation
@@ -248,7 +249,9 @@ async def regenerate_option_field(
     trend_name: str,
     trend_description: str,
     region: str,
+    preferred_locale: str | None = None,
 ) -> ContentIdea:
+    resolved_locale = resolve_preferred_locale(region, preferred_locale)
     if field == "prompt":
         return await regenerate_media_prompt(
             llm=llm,
@@ -265,7 +268,11 @@ async def regenerate_option_field(
         if current is None:
             raise ValueError("Image option not found")
         response = await llm.complete(
-            system=media_copy_regenerate_system_prompt(field, platform=current.platform),
+            system=media_copy_regenerate_system_prompt(
+                field,
+                platform=current.platform,
+                preferred_locale=resolved_locale,
+            ),
             user=(
                 f"{_option_context(current, trend_name=trend_name, trend_description=trend_description, region=region)}\n"
                 f"Return a fresh {field} as JSON."
@@ -279,7 +286,11 @@ async def regenerate_option_field(
     if current is None:
         raise ValueError("Video option not found")
     response = await llm.complete(
-        system=media_copy_regenerate_system_prompt(field, platform=current.platform),
+        system=media_copy_regenerate_system_prompt(
+            field,
+            platform=current.platform,
+            preferred_locale=resolved_locale,
+        ),
         user=(
             f"{_option_context(current, trend_name=trend_name, trend_description=trend_description, region=region)}\n"
             f"Return a fresh {field} as JSON."

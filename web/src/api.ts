@@ -55,7 +55,7 @@ export function runPersonalizedResearch(body: PersonalizedResearchRequest) {
   });
 }
 
-export function initBrief(body: { report_id: string; trend_name: string }) {
+export function initBrief(body: { report_id: string; trend_name: string; preferred_locale?: string | null }) {
   return request<TrendBrief>("/briefs/init", {
     method: "POST",
     body: JSON.stringify(body),
@@ -113,7 +113,9 @@ export function acceptMediaPrompt(body: MediaPromptTarget) {
 
 export type RegenerateField = "prompt" | "hook" | "caption" | "hashtags";
 
-export function regenerateMediaPrompt(body: MediaPromptTarget & { field?: RegenerateField }) {
+export function regenerateMediaPrompt(
+  body: MediaPromptTarget & { field?: RegenerateField; preferred_locale?: string | null },
+) {
   return request<ContentIdeaOut>("/media-prompts/regenerate", {
     method: "POST",
     body: JSON.stringify(body),

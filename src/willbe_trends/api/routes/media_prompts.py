@@ -117,6 +117,7 @@ async def regenerate_prompt(request: MediaPromptRegenerateRequest, db: Session =
             trend_name=item.trend_name,
             trend_description=item.trend_description,
             region=item.brief.report.region,
+            preferred_locale=request.preferred_locale,
         )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
