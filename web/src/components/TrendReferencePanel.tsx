@@ -1,4 +1,6 @@
+import { useTranslation } from "../i18n/LocaleProvider";
 import type { TrendSignal } from "../types";
+import { popularityLabel } from "../utils/formatLabels";
 
 function popularityClass(value: string) {
   return value.toLowerCase().replace(/\s+/g, "-");
@@ -13,9 +15,11 @@ export function TrendReferencePanel({
   evidenceSummary?: string;
   whyNow?: string;
 }) {
+  const t = useTranslation();
+
   return (
     <section className="trend-reference panel panel-padding">
-      <p className="meta section-eyebrow">Trend reference</p>
+      <p className="meta section-eyebrow">{t.trendReference}</p>
       <div className="trend-reference-grid">
         {trend.image_url ? (
           <div className="trend-reference-media">
@@ -32,21 +36,21 @@ export function TrendReferencePanel({
                 target="_blank"
                 rel="noreferrer"
               >
-                View source
+                {t.viewSource}
               </a>
             ) : null}
           </div>
         ) : (
-          <div className="trend-reference-media trend-media-empty">No reference image</div>
+          <div className="trend-reference-media trend-media-empty">{t.noReferenceImage}</div>
         )}
 
         <div className="trend-reference-copy">
           <div className="badges" style={{ marginBottom: 10 }}>
             <span className={`badge badge-accent popularity-${popularityClass(trend.popularity)}`}>
-              {trend.popularity}
+              {popularityLabel(trend.popularity, t)}
             </span>
             {trend.confidence ? (
-              <span className="badge">{Math.round(trend.confidence * 100)}% confidence</span>
+              <span className="badge">{t.confidence(Math.round(trend.confidence * 100))}</span>
             ) : null}
           </div>
           <h2 className="section-title" style={{ marginTop: 0 }}>
@@ -69,13 +73,13 @@ export function TrendReferencePanel({
           )}
           {evidenceSummary ? (
             <div className="trend-reference-note">
-              <strong>Why this trend</strong>
+              <strong>{t.whyThisTrend}</strong>
               <p>{evidenceSummary}</p>
             </div>
           ) : null}
           {whyNow ? (
             <div className="trend-reference-note">
-              <strong>Why now</strong>
+              <strong>{t.whyNow}</strong>
               <p>{whyNow}</p>
             </div>
           ) : null}

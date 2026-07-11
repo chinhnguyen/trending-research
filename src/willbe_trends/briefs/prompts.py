@@ -152,8 +152,11 @@ Return ONLY valid JSON with this shape:
 - platform_review should mirror that same variant for strengths, improvements, and checklist."""
 
 
-def media_prompt_regenerate_system_prompt(kind: str) -> str:
+def media_prompt_regenerate_system_prompt(kind: str, *, preferred_locale: str = "en") -> str:
+    from willbe_trends.briefs.locales import media_prompt_language_rule
+
     media_label = "short vertical salon nail video" if kind == "video" else "salon nail still image"
+    language_rule = media_prompt_language_rule(preferred_locale)
     return f"""You rewrite AI media prompts for beauty salon social posts.
 Return ONLY valid JSON:
 {{
@@ -163,6 +166,7 @@ Rules:
 - Ground the visual in the supplied trend, hook, and caption.
 - Describe nail art, hands, salon lighting, and composition — avoid identifiable faces.
 - Keep prompts concrete and production-ready for an image or video model.
+{language_rule}
 - Do not return markdown or commentary."""
 
 

@@ -4,10 +4,12 @@ import { getResearch } from "../api";
 import { SourceList } from "../components/SourceList";
 import { TrendCard } from "../components/TrendCard";
 import { UsageStats } from "../components/UsageStats";
+import { useTranslation } from "../i18n/LocaleProvider";
 import type { ResearchDetail } from "../types";
 
 export function ReportPage() {
   const { id } = useParams();
+  const t = useTranslation();
   const [detail, setDetail] = useState<ResearchDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -20,7 +22,7 @@ export function ReportPage() {
       .finally(() => setLoading(false));
   }, [id]);
 
-  if (loading) return <div className="loading panel panel-padding">Loading report…</div>;
+  if (loading) return <div className="loading panel panel-padding">{t.reportLoading}</div>;
   if (error) return <div className="error panel panel-padding">{error}</div>;
   if (!detail) return null;
 
@@ -30,8 +32,8 @@ export function ReportPage() {
     <>
       <section className="hero">
         <div className="badges">
-          <span className="badge badge-accent">{report.mode}</span>
-          <span className="badge">{report.category}</span>
+          <span className="badge badge-accent">{t.modeBadge(report.mode)}</span>
+          <span className="badge">{report.category === "nails" ? t.categoryNails : report.category}</span>
           <span className="badge">{detail.research_time || report.research_time}</span>
           <span className="badge">{detail.region}</span>
         </div>
@@ -51,7 +53,7 @@ export function ReportPage() {
               ))}
           </div>
         ) : null}
-        <h1>{report.mode === "personalized" ? "Personalized picks" : "Neutral trends"}</h1>
+        <h1>{report.mode === "personalized" ? t.personalizedPicks : t.neutralTrends}</h1>
         <p>{report.summary}</p>
         <p className="meta">
           {report.llm_provider}/{report.llm_model}
@@ -64,9 +66,9 @@ export function ReportPage() {
         <section className="panel panel-padding">
           <div className="report-card-top" style={{ marginBottom: 18 }}>
             <h2 className="section-title" style={{ margin: 0 }}>
-              Trends
+              {t.trendsSection}
             </h2>
-            <span className="meta">Pick a trend to create a post</span>
+            <span className="meta">{t.pickTrendHint}</span>
           </div>
           <div className="trend-grid">
             {report.trends.map((trend) => (
@@ -76,12 +78,12 @@ export function ReportPage() {
         </section>
 
         <aside className="panel panel-padding">
-          <h2 className="section-title">Web sources</h2>
+          <h2 className="section-title">{t.webSources}</h2>
           <SourceList citations={report.web_research?.citations ?? []} />
           {detail.preferences ? (
             <>
               <h2 className="section-title" style={{ marginTop: 24 }}>
-                Preferences
+                {t.preferences}
               </h2>
               <pre
                 style={{
@@ -102,7 +104,7 @@ export function ReportPage() {
 
       <div style={{ marginTop: 20 }}>
         <Link to="/" className="nav-link">
-          Back to reports
+          {t.backToReports}
         </Link>
       </div>
     </>

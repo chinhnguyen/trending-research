@@ -14,6 +14,7 @@ export function PostComposerView({
   contentIdeaId,
   onGenerate,
   generating,
+  pendingSetup,
   mediaGenerating,
   promptBusyKey,
   regeneratingField,
@@ -28,6 +29,7 @@ export function PostComposerView({
   contentIdeaId?: string | null;
   onGenerate?: (setup: PostSetup) => void;
   generating?: boolean;
+  pendingSetup?: PostSetup | null;
   mediaGenerating?: boolean;
   promptBusyKey?: string | null;
   regeneratingField?: RegenerateField | null;
@@ -47,6 +49,7 @@ export function PostComposerView({
         mediaJobs={mediaJobs}
         onGenerate={onGenerate}
         generating={generating}
+        pendingSetup={pendingSetup}
         mediaGenerating={mediaGenerating}
         promptBusyKey={promptBusyKey}
         regeneratingField={regeneratingField}

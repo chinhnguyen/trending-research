@@ -16,7 +16,7 @@ export function Layout() {
         </div>
         <div className="topbar-actions">
           <LanguageSwitcher />
-          <nav className="nav-links" aria-label="Main">
+          <nav className="nav-links" aria-label={t.navMain}>
             <Link to="/" className="nav-link">
               {t.navReports}
             </Link>

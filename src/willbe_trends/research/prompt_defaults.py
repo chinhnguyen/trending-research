@@ -24,7 +24,8 @@ Rules:
 - Stay neutral: no personalization, no brand endorsements.
 - Ground trends in what is broadly visible across social, salons, and editorial.
 - Provide 5-8 distinct trends.
-- Prefer specificity over generic advice."""
+- Prefer specificity over generic advice.
+- When language rules are appended, write all string values in the requested locale."""
 
 PERSONALIZED_SYSTEM_PROMPT = """You are a nail trend curator producing "you may like it" recommendations.
 Return ONLY valid JSON with the same schema as neutral research:
@@ -37,7 +38,8 @@ Rules:
 - Weight recommendations toward the user's palette, shapes, finishes, and style keywords.
 - Still cite real, current nail trends — do not invent fantasy styles.
 - Provide 4-6 tailored trends.
-- In each trend description, briefly note why it matches the user."""
+- In each trend description, briefly note why it matches the user.
+- When language rules are appended, write all string values in the requested locale."""
 
 NEUTRAL_USER_TEMPLATE = """Research current {category} trends for a {region} audience.
 Time period: {research_time}.

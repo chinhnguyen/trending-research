@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import type { RegenerateField } from "../api";
 import { useTranslation } from "../i18n/LocaleProvider";
 
@@ -10,6 +10,8 @@ export type OptionDraft = {
 };
 
 type DraftFieldKey = RegenerateField;
+
+const AUTO_GENERATE_SECONDS = 10;
 
 function ReloadIcon() {
   return (
@@ -137,21 +139,25 @@ function DraftField({
 
 export function MediaPromptReview({
   draft: initialDraft,
+  optionKey,
   kind,
   disabled = false,
   mediaBusy = false,
   regeneratingField = null,
   accepting = false,
+  autoAcceptEnabled = false,
   mediaPreview,
   onAccept,
   onRegenerate,
 }: {
   draft: OptionDraft;
+  optionKey: string;
   kind: "image" | "video";
   disabled?: boolean;
   mediaBusy?: boolean;
   regeneratingField?: RegenerateField | null;
   accepting?: boolean;
+  autoAcceptEnabled?: boolean;
   mediaPreview: ReactNode;
   onAccept: (draft: OptionDraft) => void | Promise<void>;
   onRegenerate: (field: RegenerateField) => void | Promise<void>;
@@ -159,13 +165,98 @@ export function MediaPromptReview({
   const t = useTranslation();
   const [draft, setDraft] = useState(initialDraft);
   const [editingFields, setEditingFields] = useState<Set<DraftFieldKey>>(new Set());
+  const [countdown, setCountdown] = useState<number | null>(null);
+  const [autoAcceptArmed, setAutoAcceptArmed] = useState(false);
+  const draftRef = useRef(draft);
+  draftRef.current = draft;
+  const onAcceptRef = useRef(onAccept);
+  onAcceptRef.current = onAccept;
+  const pendingReloadRef = useRef(false);
+  const pendingEditArmRef = useRef(false);
+  const countdownActiveRef = useRef(false);
 
   useEffect(() => {
     setDraft(initialDraft);
     setEditingFields(new Set());
+    setAutoAcceptArmed(false);
+    setCountdown(null);
+    pendingReloadRef.current = false;
+    pendingEditArmRef.current = false;
+    countdownActiveRef.current = false;
+  }, [optionKey]);
+
+  useEffect(() => {
+    setDraft(initialDraft);
   }, [initialDraft]);
 
   const formLocked = disabled || accepting || mediaBusy;
+  const draftReady = Boolean(draft.prompt.trim() && draft.caption.trim());
+
+  function disarmAutoAccept() {
+    setAutoAcceptArmed(false);
+    setCountdown(null);
+    countdownActiveRef.current = false;
+  }
+
+  function armAutoAccept() {
+    if (!autoAcceptEnabled || !draftReady || formLocked || mediaBusy || regeneratingField !== null) {
+      return;
+    }
+    setAutoAcceptArmed(true);
+  }
+
+  useEffect(() => {
+    if (editingFields.size > 0 || regeneratingField !== null || formLocked || mediaBusy || !autoAcceptEnabled) {
+      disarmAutoAccept();
+    }
+  }, [editingFields, regeneratingField, formLocked, mediaBusy, autoAcceptEnabled]);
+
+  useEffect(() => {
+    if (!pendingEditArmRef.current || editingFields.size > 0) {
+      return;
+    }
+    pendingEditArmRef.current = false;
+    armAutoAccept();
+  }, [editingFields, draftReady, autoAcceptEnabled, formLocked, mediaBusy, regeneratingField]);
+
+  useEffect(() => {
+    if (!pendingReloadRef.current || regeneratingField !== null) {
+      return;
+    }
+    pendingReloadRef.current = false;
+    armAutoAccept();
+  }, [initialDraft, regeneratingField, draftReady, autoAcceptEnabled, formLocked, mediaBusy]);
+
+  useEffect(() => {
+    if (!autoAcceptArmed || countdownActiveRef.current) {
+      return;
+    }
+    if (!autoAcceptEnabled || formLocked || mediaBusy || regeneratingField !== null || editingFields.size > 0 || !draftReady) {
+      return;
+    }
+
+    countdownActiveRef.current = true;
+    setCountdown(AUTO_GENERATE_SECONDS);
+
+    const interval = window.setInterval(() => {
+      setCountdown((current) => {
+        if (current === null) return null;
+        if (current <= 1) {
+          window.clearInterval(interval);
+          countdownActiveRef.current = false;
+          setAutoAcceptArmed(false);
+          void onAcceptRef.current(draftRef.current);
+          return null;
+        }
+        return current - 1;
+      });
+    }, 1000);
+
+    return () => {
+      window.clearInterval(interval);
+      countdownActiveRef.current = false;
+    };
+  }, [autoAcceptArmed, autoAcceptEnabled, formLocked, mediaBusy, regeneratingField, editingFields, draftReady]);
 
   function updateField<K extends keyof OptionDraft>(field: K, value: OptionDraft[K]) {
     setDraft((current) => ({ ...current, [field]: value }));
@@ -177,13 +268,22 @@ export function MediaPromptReview({
     }
     setEditingFields((current) => {
       const next = new Set(current);
-      if (next.has(field)) {
+      const wasEditing = next.has(field);
+      if (wasEditing) {
         next.delete(field);
+        pendingEditArmRef.current = true;
       } else {
+        disarmAutoAccept();
         next.add(field);
       }
       return next;
     });
+  }
+
+  function handleReload(field: DraftFieldKey) {
+    disarmAutoAccept();
+    pendingReloadRef.current = true;
+    void onRegenerate(field);
   }
 
   function fieldProps(field: DraftFieldKey, label: string, rows: number, placeholder: string) {
@@ -205,9 +305,16 @@ export function MediaPromptReview({
       value: draft[draftKey as keyof OptionDraft],
       onToggleEdit: () => toggleEdit(field),
       onChange: (value: string) => updateField(draftKey as keyof OptionDraft, value),
-      onReload: () => onRegenerate(field),
+      onReload: () => handleReload(field),
     };
   }
+
+  const acceptLabel =
+    accepting || mediaBusy
+      ? t.generating
+      : countdown !== null
+        ? t.autoGenerateCountdown(countdown)
+        : t.acceptAndGenerate;
 
   return (
     <div className="media-prompt-review-layout">
@@ -218,6 +325,23 @@ export function MediaPromptReview({
           <p className="meta">{t.reviewHint}</p>
         </div>
 
+        {countdown !== null ? (
+          <div className="media-prompt-auto-countdown" aria-live="polite">
+            <div className="media-prompt-auto-countdown-copy">
+              <span className="field-spinner" aria-hidden="true" />
+              <span>{t.autoGenerateCountdown(countdown)}</span>
+            </div>
+            <button type="button" className="button button-compact" onClick={disarmAutoAccept}>
+              {t.cancelAutoGenerate}
+            </button>
+            <div
+              className="media-prompt-auto-countdown-bar"
+              aria-hidden="true"
+              style={{ width: `${(countdown / AUTO_GENERATE_SECONDS) * 100}%` }}
+            />
+          </div>
+        ) : null}
+
         <DraftField {...fieldProps("hook", t.hook, 2, t.hookPlaceholder)} />
         <DraftField {...fieldProps("caption", t.caption, 4, t.captionPlaceholder)} />
         <DraftField {...fieldProps("hashtags", t.hashtags, 2, t.hashtagsPlaceholder)} />
@@ -227,12 +351,15 @@ export function MediaPromptReview({
             <button
               type="button"
               className="button button-primary button-compact media-prompt-accept-inline"
-              onClick={() => onAccept(draft)}
+              onClick={() => {
+                disarmAutoAccept();
+                void onAccept(draft);
+              }}
               disabled={
                 formLocked || regeneratingField !== null || !draft.prompt.trim() || !draft.caption.trim()
               }
             >
-              {accepting || mediaBusy ? t.generating : t.generate}
+              {acceptLabel}
             </button>
           }
         />

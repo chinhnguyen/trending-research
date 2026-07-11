@@ -1,8 +1,11 @@
+import { useTranslation } from "../i18n/LocaleProvider";
 import type { WebCitation } from "../types";
 
 export function SourceList({ citations }: { citations: WebCitation[] }) {
+  const t = useTranslation();
+
   if (citations.length === 0) {
-    return <div className="empty-state">No web sources attached to this report.</div>;
+    return <div className="empty-state">{t.noWebSources}</div>;
   }
 
   return (
@@ -10,7 +13,7 @@ export function SourceList({ citations }: { citations: WebCitation[] }) {
       {citations.map((citation) => (
         <article key={`${citation.url}-${citation.title}`} className="source-item">
           <div className="badges" style={{ marginBottom: 8 }}>
-            {citation.preferred ? <span className="badge badge-accent">Preferred</span> : null}
+            {citation.preferred ? <span className="badge badge-accent">{t.preferredBadge}</span> : null}
             {citation.source_name ? <span className="badge">{citation.source_name}</span> : null}
           </div>
           <strong>{citation.title}</strong>

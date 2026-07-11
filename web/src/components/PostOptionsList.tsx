@@ -3,7 +3,8 @@ import type { RegenerateField } from "../api";
 import { useLocale, useTranslation } from "../i18n/LocaleProvider";
 import type { ContentIdea, MediaJob, PostFormat, SocialPlatform } from "../types";
 import { pickCaption } from "../utils/locale";
-import { copyPostBundle, formatHashtags, formatLabel } from "../utils/postFormat";
+import { copyPostBundle, formatHashtags } from "../utils/postFormat";
+import { aspectRatioLabel } from "../utils/formatLabels";
 import { InstagramShareButton } from "./InstagramShareButton";
 import { MediaPromptReview, type OptionDraft } from "./MediaPromptReview";
 import { findActiveJobForOption, OptionMediaProgress } from "./OptionMediaProgress";
@@ -60,6 +61,7 @@ function buildPostOptions(
   preferredLocale: string,
   fallbackCaptionText: string,
   optionLabel: (n: number) => string,
+  t: ReturnType<typeof useTranslation>,
 ): PostOption[] {
   if (!idea) return [];
 
@@ -85,7 +87,7 @@ function buildPostOptions(
       hashtags: image.hashtags.length > 0 ? image.hashtags : fallbackHashtags,
       hook: image.hook ?? fallbackHook,
       imageUrl: image.generated_url,
-      formatLabel: formatLabel(image.aspect_ratio),
+      formatLabel: aspectRatioLabel(image.aspect_ratio, t),
       mediaPrompt: image.prompt,
       generationStatus: image.generation_status,
       generationError: image.generation_error,
@@ -105,7 +107,7 @@ function buildPostOptions(
       hashtags: video.hashtags.length > 0 ? video.hashtags : fallbackHashtags,
       hook: video.hook ?? fallbackHook,
       videoUrl: video.generated_url,
-      formatLabel: formatLabel(video.aspect_ratio),
+      formatLabel: aspectRatioLabel(video.aspect_ratio, t),
       mediaPrompt: video.prompt,
       generationStatus: video.generation_status,
       generationError: video.generation_error,
@@ -168,6 +170,7 @@ export function PostOptionsList({
   mediaJobs,
   onGenerate,
   generating,
+  pendingSetup,
   mediaGenerating,
   promptBusyKey,
   regeneratingField,
@@ -179,6 +182,7 @@ export function PostOptionsList({
   mediaJobs?: MediaJob[];
   onGenerate?: (setup: PostSetup) => void;
   generating?: boolean;
+  pendingSetup?: PostSetup | null;
   mediaGenerating?: boolean;
   promptBusyKey?: string | null;
   regeneratingField?: RegenerateField | null;
@@ -192,8 +196,10 @@ export function PostOptionsList({
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [nextSetup, setNextSetup] = useState<PostSetup>({ platform: "instagram", postFormat: "image" });
   const setupLabel = usePostSetupLabel(nextSetup);
-  const options = buildPostOptions(idea, preferredLocale, t.shareFallbackCaption, t.optionLabel);
+  const options = buildPostOptions(idea, preferredLocale, t.shareFallbackCaption, t.optionLabel, t);
   const locked = mediaGenerating ?? isMediaGenerating(options, mediaJobs);
+  const showPending = Boolean(pendingSetup);
+  const visibleOptionCount = options.length + (showPending ? 1 : 0);
 
   async function handleCopy(option: PostOption) {
     const caption = option.hook ? `${option.hook}\n\n${option.caption}` : option.caption;
@@ -215,9 +221,9 @@ export function PostOptionsList({
     <section className={`post-options panel panel-padding${locked ? " post-options-locked" : ""}`}>
       <div className="post-options-header">
         <div>
-          <p className="meta section-eyebrow">{options.length ? t.generatedOptions : t.composerEyebrow}</p>
+          <p className="meta section-eyebrow">{visibleOptionCount ? t.generatedOptions : t.composerEyebrow}</p>
           <h2 className="section-title" style={{ margin: 0 }}>
-            {options.length ? t.yourPostOptions : t.generateFirstOption}
+            {visibleOptionCount ? t.yourPostOptions : t.generateFirstOption}
           </h2>
           <p className="meta">
             {locked ? t.mediaGeneratingLocked : t.reviewPromptHint}
@@ -226,7 +232,7 @@ export function PostOptionsList({
       </div>
 
       <div className="post-options-list">
-        {options.length === 0 ? (
+        {options.length === 0 && !showPending ? (
           <div className="post-option-empty panel panel-padding">
             <p className="meta">{t.noOptionsYet}</p>
           </div>
@@ -278,12 +284,14 @@ export function PostOptionsList({
               {showComposer ? (
                 <div className="post-option-body">
                   <MediaPromptReview
+                    optionKey={option.id}
                     draft={optionDraft(option)}
                     kind={option.kind}
                     disabled={generating}
                     mediaBusy={isThisGenerating}
                     accepting={promptBusy && !regeneratingField}
                     regeneratingField={promptBusy ? regeneratingField : null}
+                    autoAcceptEnabled={option.generationStatus === "prompt_only"}
                     mediaPreview={
                       <MediaPreview
                         option={option}
@@ -304,6 +312,37 @@ export function PostOptionsList({
             </article>
           );
         })}
+
+        {showPending && pendingSetup ? (
+          <article className="post-option-card is-pending" aria-busy="true" aria-live="polite">
+            <div className="post-option-header">
+              <div>
+                <span className="badge badge-accent">{t.optionLabel(options.length + 1)}</span>
+                <span className="badge">
+                  {setupLabelForOption(
+                    pendingSetup.platform,
+                    pendingSetup.postFormat,
+                    platforms,
+                    postTypes,
+                  )}
+                </span>
+              </div>
+            </div>
+            <div className="post-option-pending-body">
+              <div className="post-option-pending-loader">
+                <span className="field-spinner" aria-hidden="true" />
+                <strong>{t.generatingOption}</strong>
+              </div>
+              <p className="meta">{t.generatingOptionHint}</p>
+              <div className="post-option-skeleton" aria-hidden="true">
+                <span className="post-option-skeleton-line post-option-skeleton-line-wide" />
+                <span className="post-option-skeleton-line" />
+                <span className="post-option-skeleton-line" />
+                <span className="post-option-skeleton-line post-option-skeleton-line-tall" />
+              </div>
+            </div>
+          </article>
+        ) : null}
       </div>
 
       {onGenerate ? (

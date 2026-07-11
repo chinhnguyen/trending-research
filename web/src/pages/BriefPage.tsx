@@ -10,6 +10,7 @@ import {
 } from "../api";
 import { PostComposerView } from "../components/PostComposerView";
 import type { MediaPromptTarget, OptionDraft } from "../components/PostOptionsList";
+import type { PostSetup } from "../components/PostSetupPicker";
 import { useMediaJobPolling } from "../hooks/useMediaJobPolling";
 import { useLocale, useTranslation } from "../i18n/LocaleProvider";
 import type { ContentIdeaOut, MediaJob, PostFormat, SocialPlatform, TrendBrief } from "../types";
@@ -61,6 +62,7 @@ export function BriefPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [generating, setGenerating] = useState(false);
+  const [pendingSetup, setPendingSetup] = useState<PostSetup | null>(null);
   const [promptBusyKey, setPromptBusyKey] = useState<string | null>(null);
   const [regeneratingField, setRegeneratingField] = useState<RegenerateField | null>(null);
   const [trackedJobs, setTrackedJobs] = useState<MediaJob[]>(() => {
@@ -131,6 +133,7 @@ export function BriefPage() {
   }
 
   async function generateOption(briefItemId: string, platform: SocialPlatform, postFormat: PostFormat) {
+    setPendingSetup({ platform, postFormat });
     setGenerating(true);
     setError(null);
     try {
@@ -145,6 +148,7 @@ export function BriefPage() {
       setError(err instanceof Error ? err.message : t.couldNotGenerate);
     } finally {
       setGenerating(false);
+      setPendingSetup(null);
     }
   }
 
@@ -155,13 +159,14 @@ export function BriefPage() {
   const item = brief.items[0];
   const optionCount =
     (item?.content_idea?.image_recommendations.length ?? 0) +
-    (item?.content_idea?.video_recommendations.length ?? 0);
+    (item?.content_idea?.video_recommendations.length ?? 0) +
+    (pendingSetup ? 1 : 0);
 
   return (
     <div className="page-stack">
       <section className="hero hero-compact">
         <div className="badges">
-          <span className="badge badge-accent">{optionCount ? t.postComposer : t.createPost}</span>
+          <span className="badge badge-accent">{optionCount ? t.postComposer : t.createPostBadge}</span>
           <span className="badge">{brief.region}</span>
         </div>
         <h1>{brief.title}</h1>
@@ -180,6 +185,7 @@ export function BriefPage() {
           mediaJobs={progressJobs}
           onGenerate={(setup) => generateOption(item.id, setup.platform, setup.postFormat)}
           generating={generating}
+          pendingSetup={pendingSetup}
           mediaGenerating={mediaGenerating}
           promptBusyKey={promptBusyKey}
           regeneratingField={regeneratingField}

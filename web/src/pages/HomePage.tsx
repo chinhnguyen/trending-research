@@ -2,11 +2,11 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { listResearch } from "../api";
 import { UsageStats } from "../components/UsageStats";
-import { useTranslation } from "../i18n/LocaleProvider";
+import { useLocale, useTranslation } from "../i18n/LocaleProvider";
 import type { ResearchListItem } from "../types";
 
-function formatDate(value: string) {
-  return new Intl.DateTimeFormat(undefined, {
+function formatDate(value: string, locale: string) {
+  return new Intl.DateTimeFormat(locale, {
     dateStyle: "medium",
     timeStyle: "short",
   }).format(new Date(value));
@@ -14,6 +14,7 @@ function formatDate(value: string) {
 
 export function HomePage() {
   const t = useTranslation();
+  const { locale } = useLocale();
   const [items, setItems] = useState<ResearchListItem[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -69,24 +70,24 @@ export function HomePage() {
                         referrerPolicy="no-referrer"
                       />
                     ) : (
-                      <div className="report-card-thumb report-card-thumb-empty">No image</div>
+                      <div className="report-card-thumb report-card-thumb-empty">{t.noImage}</div>
                     )}
                     <div className="report-card-content">
                       <div className="report-card-top">
                         <div className="badges">
-                          <span className="badge badge-accent">{item.mode}</span>
-                          <span className="badge">{item.category}</span>
+                          <span className="badge badge-accent">{t.modeBadge(item.mode)}</span>
+                          <span className="badge">{item.category === "nails" ? t.categoryNails : item.category}</span>
                           <span className="badge">{item.research_time}</span>
                           {item.web_search_enabled ? (
-                            <span className="badge">web search</span>
+                            <span className="badge">{t.webSearchBadge}</span>
                           ) : null}
                         </div>
-                        <span className="meta">{formatDate(item.created_at)}</span>
+                        <span className="meta">{formatDate(item.created_at, locale)}</span>
                       </div>
                       <p>{item.summary}</p>
                       <div className="meta">
-                        {t.trends(item.trend_count)} · {item.image_count} images · {item.citation_count}{" "}
-                        sources · {item.llm_provider}/{item.llm_model}
+                        {t.trends(item.trend_count)} · {t.imagesCount(item.image_count)} ·{" "}
+                        {t.sourcesCount(item.citation_count)} · {item.llm_provider}/{item.llm_model}
                         {item.llm_usage ? (
                           <>
                             {" "}

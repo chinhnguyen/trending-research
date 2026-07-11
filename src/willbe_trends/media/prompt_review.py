@@ -261,6 +261,7 @@ async def regenerate_option_field(
             trend_name=trend_name,
             trend_description=trend_description,
             region=region,
+            preferred_locale=resolved_locale,
         )
 
     if kind == "image":
@@ -310,13 +311,23 @@ async def regenerate_media_prompt(
     trend_name: str,
     trend_description: str,
     region: str,
+    preferred_locale: str = "en",
 ) -> ContentIdea:
+    from willbe_trends.briefs.locales import LOCALE_NAMES, resolve_preferred_locale
+
+    resolved_locale = resolve_preferred_locale(region, preferred_locale)
+    locale_name = LOCALE_NAMES.get(resolved_locale, resolved_locale)
+    locale_hint = (
+        f"\nWrite the generation prompt in {locale_name} ({resolved_locale})."
+        if resolved_locale != "en"
+        else ""
+    )
     if kind == "image":
         current = _find_image(idea, sequence)
         if current is None:
             raise ValueError("Image option not found")
         response = await llm.complete(
-            system=media_prompt_regenerate_system_prompt("image"),
+            system=media_prompt_regenerate_system_prompt("image", preferred_locale=resolved_locale),
             user=(
                 f"Trend: {trend_name}\n"
                 f"Description: {trend_description}\n"
@@ -326,7 +337,7 @@ async def regenerate_media_prompt(
                 f"Hook: {current.hook or ''}\n"
                 f"Caption: {current.caption or ''}\n"
                 f"Current prompt: {current.prompt}\n"
-                "Return a fresh image generation prompt as JSON."
+                f"Return a fresh image generation prompt as JSON.{locale_hint}"
             ),
         )
         payload = _extract_json_payload(response.content)
@@ -349,7 +360,7 @@ async def regenerate_media_prompt(
     if current is None:
         raise ValueError("Video option not found")
     response = await llm.complete(
-        system=media_prompt_regenerate_system_prompt("video"),
+        system=media_prompt_regenerate_system_prompt("video", preferred_locale=resolved_locale),
         user=(
             f"Trend: {trend_name}\n"
             f"Description: {trend_description}\n"
@@ -360,7 +371,7 @@ async def regenerate_media_prompt(
             f"Hook: {current.hook or ''}\n"
             f"Caption: {current.caption or ''}\n"
             f"Current prompt: {current.prompt}\n"
-            "Return a fresh short-video generation prompt as JSON."
+            f"Return a fresh short-video generation prompt as JSON.{locale_hint}"
         ),
     )
     payload = _extract_json_payload(response.content)

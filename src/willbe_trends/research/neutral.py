@@ -135,7 +135,7 @@ async def research_neutral_trends(
     settings: Settings | None = None,
     prompts: PromptConfig | None = None,
 ) -> TrendReport:
-    from willbe_trends.briefs.locales import research_locale_rules
+    from willbe_trends.briefs.locales import research_locale_rules, research_system_locale_rules
 
     resolved_time = normalize_research_time(research_time)
     prompt_config = prompts or load_prompts()
@@ -158,7 +158,11 @@ async def research_neutral_trends(
     locale_rules = research_locale_rules(preferred_locale or "")
     if locale_rules:
         user_prompt = f"{user_prompt}\n\n{locale_rules}"
-    response = await llm.complete(system=prompt_config.neutral_system(), user=user_prompt)
+    system = prompt_config.neutral_system()
+    system_locale = research_system_locale_rules(preferred_locale or "")
+    if system_locale:
+        system = f"{system}\n\n{system_locale}"
+    response = await llm.complete(system=system, user=user_prompt)
     report = build_trend_report(
         category=category,
         mode="neutral",

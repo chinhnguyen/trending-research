@@ -1,51 +1,52 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { getPrompts, resetPrompts, updatePrompts } from "../api";
+import { useTranslation } from "../i18n/LocaleProvider";
 import type { PromptConfig } from "../types";
+import type { TranslationFn } from "../i18n/translations";
 
-const TEMPLATE_HINTS = {
-  neutral_user_template: "{category}, {region}, {research_time}",
-  personalized_user_template: "{category}, {region}, {research_time}, {preferences_json}",
-};
-
-const FIELDS: Array<{
+function promptFields(t: TranslationFn): Array<{
   key: keyof PromptConfig;
   label: string;
   hint: string;
   rows: number;
-}> = [
-  {
-    key: "neutral_system_prompt",
-    label: "Neutral system prompt",
-    hint: "Instructions for objective trend research. Appended with web grounded rules before sending.",
-    rows: 14,
-  },
-  {
-    key: "personalized_system_prompt",
-    label: "Personalized system prompt",
-    hint: "Instructions for tailored recommendations. Appended with web grounded rules before sending.",
-    rows: 14,
-  },
-  {
-    key: "web_grounded_rules",
-    label: "Web grounded rules",
-    hint: "Appended to both system prompts when web search is enabled.",
-    rows: 6,
-  },
-  {
-    key: "neutral_user_template",
-    label: "Neutral user template",
-    hint: `Placeholders: ${TEMPLATE_HINTS.neutral_user_template}. Web snippets are appended separately.`,
-    rows: 5,
-  },
-  {
-    key: "personalized_user_template",
-    label: "Personalized user template",
-    hint: `Placeholders: ${TEMPLATE_HINTS.personalized_user_template}. Web snippets are appended separately.`,
-    rows: 6,
-  },
-];
+}> {
+  return [
+    {
+      key: "neutral_system_prompt",
+      label: t.promptNeutralSystem,
+      hint: t.promptNeutralSystemHint,
+      rows: 14,
+    },
+    {
+      key: "personalized_system_prompt",
+      label: t.promptPersonalizedSystem,
+      hint: t.promptPersonalizedSystemHint,
+      rows: 14,
+    },
+    {
+      key: "web_grounded_rules",
+      label: t.promptWebGrounded,
+      hint: t.promptWebGroundedHint,
+      rows: 6,
+    },
+    {
+      key: "neutral_user_template",
+      label: t.promptNeutralUser,
+      hint: t.promptNeutralUserHint,
+      rows: 5,
+    },
+    {
+      key: "personalized_user_template",
+      label: t.promptPersonalizedUser,
+      hint: t.promptPersonalizedUserHint,
+      rows: 6,
+    },
+  ];
+}
 
 export function PromptsPage() {
+  const t = useTranslation();
+  const fields = useMemo(() => promptFields(t), [t]);
   const [config, setConfig] = useState<PromptConfig | null>(null);
   const [isDefault, setIsDefault] = useState(true);
   const [loading, setLoading] = useState(true);
@@ -78,9 +79,9 @@ export function PromptsPage() {
       const response = await updatePrompts(config);
       setConfig(response.config);
       setIsDefault(response.is_default);
-      setSavedMessage("Prompts saved.");
+      setSavedMessage(t.promptsSaved);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to save prompts");
+      setError(err instanceof Error ? err.message : t.failedSavePrompts);
     } finally {
       setSaving(false);
     }
@@ -94,44 +95,41 @@ export function PromptsPage() {
       const response = await resetPrompts();
       setConfig(response.config);
       setIsDefault(true);
-      setSavedMessage("Restored default prompts.");
+      setSavedMessage(t.promptsRestored);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to reset prompts");
+      setError(err instanceof Error ? err.message : t.failedResetPrompts);
     } finally {
       setResetting(false);
     }
   }
 
-  if (loading) return <div className="loading panel panel-padding">Loading prompts…</div>;
+  if (loading) return <div className="loading panel panel-padding">{t.loadingPrompts}</div>;
   if (error && !config) return <div className="error panel panel-padding">{error}</div>;
   if (!config) return null;
 
   return (
     <>
       <section className="hero">
-        <h1>Prompt settings</h1>
-        <p>
-          Edit the system and user prompts used for neutral and personalized research runs.
-          Changes apply to new research only.
-        </p>
+        <h1>{t.promptsTitle}</h1>
+        <p>{t.promptsSubtitle}</p>
       </section>
 
       <section className="panel panel-padding">
         <div className="prompts-toolbar">
           <div>
             <h2 className="section-title" style={{ marginBottom: 6 }}>
-              Active configuration
+              {t.activeConfiguration}
             </h2>
             <p className="meta" style={{ margin: 0 }}>
-              {isDefault ? "Using built-in defaults" : "Using custom prompts from config/prompts.yaml"}
+              {isDefault ? t.usingBuiltInDefaults : t.usingCustomPrompts}
             </p>
           </div>
           <div className="prompts-actions">
             <button type="button" className="button" onClick={handleReset} disabled={resetting || saving}>
-              {resetting ? "Resetting…" : "Reset to defaults"}
+              {resetting ? t.resetting : t.resetToDefaults}
             </button>
             <button type="button" className="button button-primary" onClick={handleSave} disabled={saving || resetting}>
-              {saving ? "Saving…" : "Save prompts"}
+              {saving ? t.saving : t.savePrompts}
             </button>
           </div>
         </div>
@@ -140,7 +138,7 @@ export function PromptsPage() {
         {savedMessage ? <div className="success" style={{ marginTop: 16 }}>{savedMessage}</div> : null}
 
         <div className="prompts-form">
-          {FIELDS.map((field) => (
+          {fields.map((field) => (
             <div className="field" key={field.key}>
               <label htmlFor={field.key}>{field.label}</label>
               <p className="field-hint">{field.hint}</p>

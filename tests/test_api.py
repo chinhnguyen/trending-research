@@ -290,8 +290,14 @@ class StubBriefLLM(LLMProvider):
                 usage=LLMUsageStats(prompt_tokens=20, completion_tokens=10, total_tokens=30, estimated_cost_usd=0),
             )
         if "generation prompt as JSON" in user:
+            is_vi_prompt = "Write the generation prompt in Vietnamese" in system
+            prompt = (
+                "Cận cảnh móng chrome salon dưới đèn ring light"
+                if is_vi_prompt
+                else "Reloaded salon chrome nail macro shot under ring light"
+            )
             return LLMResponse(
-                content='{"prompt": "Reloaded salon chrome nail macro shot under ring light"}',
+                content=f'{{"prompt": "{prompt}"}}',
                 provider="stub",
                 model="stub-model",
                 usage=LLMUsageStats(prompt_tokens=20, completion_tokens=10, total_tokens=30, estimated_cost_usd=0),
@@ -939,6 +945,19 @@ def test_media_prompt_regenerate_copy_fields(tmp_path, monkeypatch):
     )
     assert hashtags.status_code == 200
     assert hashtags.json()["image_recommendations"][0]["hashtags"] == ["#freshnails", "#chromeglow", "#booknow"]
+
+    prompt = client.post(
+        "/api/media-prompts/regenerate",
+        json={
+            "content_idea_id": content_idea_id,
+            "kind": "image",
+            "sequence": sequence,
+            "field": "prompt",
+            "preferred_locale": "vi",
+        },
+    )
+    assert prompt.status_code == 200
+    assert prompt.json()["image_recommendations"][0]["prompt"] == "Cận cảnh móng chrome salon dưới đèn ring light"
 
     get_settings.cache_clear()
     db_models._engine = None

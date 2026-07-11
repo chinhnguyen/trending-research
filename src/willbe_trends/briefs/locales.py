@@ -94,20 +94,47 @@ def research_locale_rules(preferred_locale: str) -> str:
     preferred = resolve_preferred_locale("", preferred_locale)
     if preferred != "vi":
         return ""
-    return """Language rules:
+    return """Language rules (Vietnamese):
 - Write summary and every trend name and description in Vietnamese.
 - Keep JSON keys in English; all string values in Vietnamese.
-- Sound natural to salon owners in Vietnam — not literal translation."""
+- Use natural Vietnamese phrasing for salon owners in Vietnam — avoid literal translation from English.
+- Color names and technique terms may stay in common international usage when natural (e.g. chrome, jelly)."""
+
+
+def research_system_locale_rules(preferred_locale: str) -> str:
+    preferred = resolve_preferred_locale("", preferred_locale)
+    if preferred != "vi":
+        return ""
+    return """Output language: Vietnamese (vi).
+- Write summary, trend names, descriptions, colors, techniques, and tags in Vietnamese.
+- Keep JSON keys in English; string values in Vietnamese.
+- Sound natural to Vietnamese salon owners — not word-for-word English translation."""
+
+
+def media_prompt_language_rule(preferred_locale: str) -> str:
+    preferred = resolve_preferred_locale("", preferred_locale)
+    if preferred == "en":
+        return ""
+    preferred_name = LOCALE_NAMES.get(preferred, preferred)
+    return (
+        f"- Write the generation prompt in {preferred_name} ({preferred}). "
+        "Describe nail art, hands, salon lighting, and composition clearly."
+    )
 
 
 def locale_rules(preferred_locale: str, locales: list[str]) -> str:
     preferred = resolve_preferred_locale("", preferred_locale)
     preferred_name = LOCALE_NAMES.get(preferred, preferred)
     locale_list = ", ".join(f"{code} ({LOCALE_NAMES.get(code, code)})" for code in locales)
+    media_prompt_rule = (
+        f"- Write image and video generation prompts in {preferred_name} ({preferred})."
+        if preferred != "en"
+        else "- Keep image/video generation prompts in English (visual description for the model)."
+    )
     return f"""Language rules:
 - Required locales for captions[]: {locale_list}. Return one captions[] entry per locale.
 - Primary copy language: {preferred_name} ({preferred}).
 - Write hook, caption, hashtags, platform_review, and per-option hook/caption/hashtags in {preferred_name}.
 - For video scenes, write on_screen_text and voiceover in {preferred_name}.
-- Keep image/video generation prompts in English (visual description for the model).
+{media_prompt_rule}
 - Vietnamese copy must sound natural to salon owners in Vietnam — not literal translation."""

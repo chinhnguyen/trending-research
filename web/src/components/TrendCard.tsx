@@ -1,5 +1,7 @@
 import { Link } from "react-router-dom";
+import { useTranslation } from "../i18n/LocaleProvider";
 import type { TrendSignal } from "../types";
+import { popularityLabel } from "../utils/formatLabels";
 
 function popularityClass(value: string) {
   return value.toLowerCase().replace(/\s+/g, "-");
@@ -12,6 +14,8 @@ export function TrendCard({
   trend: TrendSignal;
   reportId?: string;
 }) {
+  const t = useTranslation();
+
   return (
     <article className="trend-card">
       {trend.image_url ? (
@@ -29,21 +33,21 @@ export function TrendCard({
               target="_blank"
               rel="noreferrer"
             >
-              View source
+              {t.viewSource}
             </a>
           ) : null}
         </div>
       ) : (
-        <div className="trend-media trend-media-empty">No reference image found</div>
+        <div className="trend-media trend-media-empty">{t.noReferenceImageFound}</div>
       )}
 
       <div className="trend-card-body">
         <div className="badges" style={{ marginBottom: 10 }}>
           <span className={`badge badge-accent popularity-${popularityClass(trend.popularity)}`}>
-            {trend.popularity}
+            {popularityLabel(trend.popularity, t)}
           </span>
           {trend.confidence ? (
-            <span className="badge">{Math.round(trend.confidence * 100)}% confidence</span>
+            <span className="badge">{t.confidence(Math.round(trend.confidence * 100))}</span>
           ) : null}
         </div>
         <h3>{trend.name}</h3>
@@ -64,7 +68,7 @@ export function TrendCard({
         )}
         {trend.source_hint ? (
           <p className="meta" style={{ marginTop: 12 }}>
-            Source: {trend.source_hint}
+            {t.sourceLabel}: {trend.source_hint}
           </p>
         ) : null}
         {reportId ? (
@@ -73,7 +77,7 @@ export function TrendCard({
               to={`/briefs/generate/${reportId}/${encodeURIComponent(trend.name)}`}
               className="button button-primary button-compact"
             >
-              Create post
+              {t.createPost}
             </Link>
           </div>
         ) : null}

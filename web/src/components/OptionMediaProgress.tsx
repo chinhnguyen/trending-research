@@ -1,25 +1,28 @@
+import { useTranslation } from "../i18n/LocaleProvider";
 import type { MediaJob } from "../types";
 
-function statusLabel(status: MediaJob["status"]) {
-  switch (status) {
-    case "queued":
-      return "Queued";
-    case "generating_media":
-      return "Generating";
-    case "completed":
-      return "Ready";
-    case "failed":
-      return "Failed";
-    case "skipped":
-      return "Skipped";
-    case "cancelled":
-      return "Cancelled";
-    default:
-      return status;
-  }
-}
-
 export function OptionMediaProgress({ job }: { job: MediaJob }) {
+  const t = useTranslation();
+
+  function statusLabel(status: MediaJob["status"]) {
+    switch (status) {
+      case "queued":
+        return t.statusQueued;
+      case "generating_media":
+        return t.statusGenerating;
+      case "completed":
+        return t.statusReady;
+      case "failed":
+        return t.statusFailed;
+      case "skipped":
+        return t.statusSkipped;
+      case "cancelled":
+        return t.statusCancelled;
+      default:
+        return status;
+    }
+  }
+
   const isFailed = job.status === "failed";
   const isActive = job.status === "queued" || job.status === "generating_media";
 
@@ -30,7 +33,7 @@ export function OptionMediaProgress({ job }: { job: MediaJob }) {
   return (
     <div className="option-media-progress" aria-live="polite">
       <div className="option-media-progress-header">
-        <strong>{isFailed ? "Generation failed" : statusLabel(job.status)}</strong>
+        <strong>{isFailed ? t.generationFailed : statusLabel(job.status)}</strong>
         {isActive ? <span className="meta">{job.progress_percent}%</span> : null}
       </div>
       {isActive ? (
@@ -39,9 +42,7 @@ export function OptionMediaProgress({ job }: { job: MediaJob }) {
         </div>
       ) : null}
       <p className="media-job-stage">{isFailed ? job.error_message ?? job.stage : job.stage}</p>
-      {isActive ? (
-        <p className="meta option-media-hint">Safe to reload — generation continues on the server.</p>
-      ) : null}
+      {isActive ? <p className="meta option-media-hint">{t.safeToReload}</p> : null}
     </div>
   );
 }

@@ -17,19 +17,21 @@ const defaultPreferences: UserPreferences = {
   notes: "Likes subtle nail art, not busy 3D charms.",
 };
 
-const defaultResearchTime = new Intl.DateTimeFormat("en-US", {
-  month: "long",
-  year: "numeric",
-}).format(new Date());
+function defaultResearchTime(locale: string) {
+  return new Intl.DateTimeFormat(locale, {
+    month: "long",
+    year: "numeric",
+  }).format(new Date());
+}
 
 export function NewResearchPage() {
   const navigate = useNavigate();
-  const { preferredLocale } = useLocale();
+  const { preferredLocale, locale } = useLocale();
   const t = useTranslation();
   const [mode, setMode] = useState<"neutral" | "personalized">("neutral");
   const [provider, setProvider] = useState("openai");
   const [region, setRegion] = useState("global");
-  const [researchTime, setResearchTime] = useState(defaultResearchTime);
+  const [researchTime, setResearchTime] = useState(() => defaultResearchTime(locale));
   const [webSearch, setWebSearch] = useState(true);
   const [displayName, setDisplayName] = useState(defaultPreferences.display_name);
   const [favoriteColors, setFavoriteColors] = useState(
@@ -86,7 +88,7 @@ export function NewResearchPage() {
       <form className="panel panel-padding form-grid" onSubmit={handleSubmit}>
         <div className="inline-fields">
           <div className="field">
-            <label htmlFor="mode">Mode</label>
+            <label htmlFor="mode">{t.mode}</label>
             <select id="mode" value={mode} onChange={(e) => setMode(e.target.value as typeof mode)}>
               <option value="neutral">{t.modeNeutral}</option>
               <option value="personalized">{t.modePersonalized}</option>
@@ -113,7 +115,7 @@ export function NewResearchPage() {
               id="research-time"
               value={researchTime}
               onChange={(e) => setResearchTime(e.target.value)}
-              placeholder="July 2026"
+              placeholder={defaultResearchTime(locale)}
             />
           </div>
         </div>
@@ -126,8 +128,8 @@ export function NewResearchPage() {
               value={webSearch ? "on" : "off"}
               onChange={(e) => setWebSearch(e.target.value === "on")}
             >
-              <option value="on">Enabled</option>
-              <option value="off">Disabled</option>
+              <option value="on">{t.enabled}</option>
+              <option value="off">{t.disabled}</option>
             </select>
           </div>
         </div>

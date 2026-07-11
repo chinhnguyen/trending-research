@@ -54,7 +54,7 @@ async def research_personalized_trends(
     settings: Settings | None = None,
     prompts: PromptConfig | None = None,
 ) -> TrendReport:
-    from willbe_trends.briefs.locales import research_locale_rules
+    from willbe_trends.briefs.locales import research_locale_rules, research_system_locale_rules
 
     resolved = settings or get_settings()
     resolved_time = normalize_research_time(research_time)
@@ -93,8 +93,12 @@ async def research_personalized_trends(
     locale_rules = research_locale_rules(preferred_locale or "")
     if locale_rules:
         user_prompt = f"{user_prompt}\n\n{locale_rules}"
+    system = prompt_config.personalized_system()
+    system_locale = research_system_locale_rules(preferred_locale or "")
+    if system_locale:
+        system = f"{system}\n\n{system_locale}"
     response = await llm.complete(
-        system=prompt_config.personalized_system(),
+        system=system,
         user=user_prompt,
     )
     report = build_trend_report(

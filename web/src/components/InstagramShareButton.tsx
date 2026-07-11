@@ -1,32 +1,37 @@
 import { useState } from "react";
+import { useTranslation } from "../i18n/LocaleProvider";
 import { shareToInstagram, type InstagramShareResult } from "../utils/instagramShare";
 import type { PostOption } from "./PostOptionsList";
 
 type ButtonState = "idle" | "sharing" | "done" | "error";
 
-function shareHint(result: InstagramShareResult | null, hasMedia: boolean, isVideo: boolean): string | null {
+function shareHint(
+  result: InstagramShareResult | null,
+  hasMedia: boolean,
+  isVideo: boolean,
+  t: ReturnType<typeof useTranslation>,
+): string | null {
   if (!result) return null;
   if (result.mode === "native_share") {
-    return "Shared to your device. Pick Instagram and finish the post there.";
+    return t.instagramShareNative;
   }
   if (hasMedia && result.mediaDownloaded) {
-    return isVideo
-      ? "Caption copied and video saved. In Instagram, upload the video and paste your caption."
-      : "Caption copied and image saved. In Instagram, upload the image and paste your caption.";
+    return isVideo ? t.instagramShareVideoSaved : t.instagramShareImageSaved;
   }
   if (hasMedia) {
-    return "Caption copied. In Instagram, upload your media and paste the caption.";
+    return t.instagramShareCaptionOnly;
   }
-  return "Caption copied. Paste it into your new Instagram post.";
+  return t.instagramShareCaptionPaste;
 }
 
 export function InstagramShareButton({ option, disabled }: { option: PostOption; disabled?: boolean }) {
+  const t = useTranslation();
   const [state, setState] = useState<ButtonState>("idle");
   const [result, setResult] = useState<InstagramShareResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const mediaUrl = option.videoUrl ?? option.imageUrl;
   const isVideo = Boolean(option.videoUrl);
-  const hint = shareHint(result, Boolean(mediaUrl), isVideo);
+  const hint = shareHint(result, Boolean(mediaUrl), isVideo, t);
 
   async function handleShare() {
     setState("sharing");
@@ -51,13 +56,17 @@ export function InstagramShareButton({ option, disabled }: { option: PostOption;
         setState("idle");
         return;
       }
-      setError(err instanceof Error ? err.message : "Could not open Instagram");
+      setError(err instanceof Error ? err.message : t.couldNotOpenInstagram);
       setState("error");
     }
   }
 
   const label =
-    state === "sharing" ? "Opening Instagram…" : state === "done" ? "Ready in Instagram" : "Post on Instagram";
+    state === "sharing"
+      ? t.openingInstagram
+      : state === "done"
+        ? t.readyInInstagram
+        : t.postOnInstagram;
 
   return (
     <div className="instagram-action">
@@ -66,11 +75,7 @@ export function InstagramShareButton({ option, disabled }: { option: PostOption;
         className="button button-primary button-compact"
         onClick={handleShare}
         disabled={disabled || state === "sharing"}
-        title={
-          mediaUrl
-            ? "Copy caption, save the media, and open Instagram"
-            : "Copy caption and open Instagram"
-        }
+        title={mediaUrl ? t.instagramShareTitleMedia : t.instagramShareTitleCaption}
       >
         {label}
       </button>

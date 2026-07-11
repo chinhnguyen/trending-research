@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { getSources, resetSources, updateSources } from "../api";
+import { useTranslation } from "../i18n/LocaleProvider";
 import type { PreferredSource, PreferredSourcesConfig, TrendCategory } from "../types";
 
 const CATEGORY_OPTIONS: TrendCategory[] = ["nails"];
@@ -15,6 +16,7 @@ function emptySource(): PreferredSource {
 }
 
 export function SourcesPage() {
+  const t = useTranslation();
   const [config, setConfig] = useState<PreferredSourcesConfig | null>(null);
   const [isDefault, setIsDefault] = useState(true);
   const [loading, setLoading] = useState(true);
@@ -84,9 +86,9 @@ export function SourcesPage() {
       const response = await updateSources(config);
       setConfig(response.config);
       setIsDefault(response.is_default);
-      setSavedMessage("Sources saved.");
+      setSavedMessage(t.sourcesSaved);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to save sources");
+      setError(err instanceof Error ? err.message : t.failedSaveSources);
     } finally {
       setSaving(false);
     }
@@ -100,49 +102,44 @@ export function SourcesPage() {
       const response = await resetSources();
       setConfig(response.config);
       setIsDefault(true);
-      setSavedMessage("Restored default sources.");
+      setSavedMessage(t.sourcesRestored);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to reset sources");
+      setError(err instanceof Error ? err.message : t.failedResetSources);
     } finally {
       setResetting(false);
     }
   }
 
-  if (loading) return <div className="loading panel panel-padding">Loading sources…</div>;
+  if (loading) return <div className="loading panel panel-padding">{t.loadingSources}</div>;
   if (error && !config) return <div className="error panel panel-padding">{error}</div>;
   if (!config) return null;
 
   return (
     <>
       <section className="hero">
-        <h1>Web search sources</h1>
-        <p>
-          Configure trusted domains to boost ranking and trigger site-specific queries during web
-          research. Changes apply to new research only.
-        </p>
+        <h1>{t.sourcesTitle}</h1>
+        <p>{t.sourcesSubtitle}</p>
       </section>
 
       <section className="panel panel-padding">
         <div className="prompts-toolbar">
           <div>
             <h2 className="section-title" style={{ marginBottom: 6 }}>
-              Preferred sources
+              {t.preferredSources}
             </h2>
             <p className="meta" style={{ margin: 0 }}>
-              {isDefault
-                ? "Using the default editorial source list"
-                : "Using custom sources from config/preferred_sources.yaml"}
+              {isDefault ? t.usingDefaultSources : t.usingCustomSources}
             </p>
           </div>
           <div className="prompts-actions">
             <button type="button" className="button" onClick={addSource} disabled={saving || resetting}>
-              Add source
+              {t.addSource}
             </button>
             <button type="button" className="button" onClick={handleReset} disabled={resetting || saving}>
-              {resetting ? "Resetting…" : "Reset to defaults"}
+              {resetting ? t.resetting : t.resetToDefaults}
             </button>
             <button type="button" className="button button-primary" onClick={handleSave} disabled={saving || resetting}>
-              {saving ? "Saving…" : "Save sources"}
+              {saving ? t.saving : t.saveSources}
             </button>
           </div>
         </div>
@@ -152,13 +149,10 @@ export function SourcesPage() {
 
         {config.sources.length === 0 ? (
           <div className="empty-state sources-empty">
-            <p>No preferred sources yet.</p>
-            <p className="meta">
-              Defaults include editorial sites already used in research runs — Allure, Vogue, Marie
-              Claire, Byrdie, and others. Add or remove domains as needed.
-            </p>
+            <p>{t.noPreferredSources}</p>
+            <p className="meta">{t.noPreferredSourcesHint}</p>
             <button type="button" className="button button-primary" onClick={addSource} style={{ marginTop: 12 }}>
-              Add your first source
+              {t.addFirstSource}
             </button>
           </div>
         ) : (
@@ -166,40 +160,40 @@ export function SourcesPage() {
             {config.sources.map((source, index) => (
               <article className="source-card" key={`${source.domain}-${index}`}>
                 <div className="source-card-header">
-                  <h3>{source.name || `Source ${index + 1}`}</h3>
+                  <h3>{source.name || t.sourceFallbackName(index + 1)}</h3>
                   <label className="source-toggle">
                     <input
                       type="checkbox"
                       checked={source.enabled}
                       onChange={(event) => updateSource(index, { enabled: event.target.checked })}
                     />
-                    Enabled
+                    {t.enabled}
                   </label>
                 </div>
 
                 <div className="source-fields">
                   <div className="source-field">
-                    <label htmlFor={`source-name-${index}`}>Name</label>
+                    <label htmlFor={`source-name-${index}`}>{t.sourceName}</label>
                     <input
                       id={`source-name-${index}`}
                       value={source.name}
                       placeholder="Allure Beauty"
                       onChange={(event) => updateSource(index, { name: event.target.value })}
                     />
-                    <p className="field-hint">Editorial label shown in results.</p>
+                    <p className="field-hint">{t.sourceNameHint}</p>
                   </div>
                   <div className="source-field">
-                    <label htmlFor={`source-domain-${index}`}>Domain</label>
+                    <label htmlFor={`source-domain-${index}`}>{t.sourceDomain}</label>
                     <input
                       id={`source-domain-${index}`}
                       value={source.domain}
                       placeholder="allure.com"
                       onChange={(event) => updateSource(index, { domain: event.target.value })}
                     />
-                    <p className="field-hint">Without https:// — e.g. allure.com</p>
+                    <p className="field-hint">{t.sourceDomainHint}</p>
                   </div>
                   <div className="source-field">
-                    <label htmlFor={`source-weight-${index}`}>Weight</label>
+                    <label htmlFor={`source-weight-${index}`}>{t.sourceWeight}</label>
                     <input
                       id={`source-weight-${index}`}
                       type="number"
@@ -211,12 +205,12 @@ export function SourcesPage() {
                         updateSource(index, { weight: Number(event.target.value) || 0 })
                       }
                     />
-                    <p className="field-hint">Higher weight ranks results from this domain first.</p>
+                    <p className="field-hint">{t.sourceWeightHint}</p>
                   </div>
                 </div>
 
                 <div className="field">
-                  <label>Categories</label>
+                  <label>{t.sourceCategories}</label>
                   <div className="chips">
                     {CATEGORY_OPTIONS.map((category) => (
                       <label className="chip chip-toggle" key={category}>
@@ -225,17 +219,15 @@ export function SourcesPage() {
                           checked={source.categories.includes(category)}
                           onChange={() => toggleCategory(index, category)}
                         />
-                        {category}
+                        {category === "nails" ? t.categoryNails : category}
                       </label>
                     ))}
                   </div>
-                  <p className="field-hint">
-                    Leave all unchecked to apply this source to every category.
-                  </p>
+                  <p className="field-hint">{t.sourceCategoriesHint}</p>
                 </div>
 
                 <button type="button" className="button source-remove" onClick={() => removeSource(index)}>
-                  Remove source
+                  {t.removeSource}
                 </button>
               </article>
             ))}
