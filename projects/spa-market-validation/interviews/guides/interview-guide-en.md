@@ -8,7 +8,6 @@
 
 ## Before you start
 
-- [ ] Recording consent obtained
 - [ ] Pre-interview form reviewed
 - [ ] Demo environment ready ([demo-script.md](../../specs/demo-script.md))
 - [ ] Mock social post open ([mock-social-post.json](../../../../samples/market-validation/mock-social-post.json))
