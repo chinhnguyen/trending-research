@@ -60,23 +60,35 @@ Seuraa [demo-script.md](../../specs/demo-script.md):
 
 ---
 
-## E. Maksuhalukkuus — Van Westendorp (5 min)
+## E. Maksuhalukkuus — hintahaarukat (5 min)
 
-Kysy **EUR/kk**.
+Kysy **EUR/kk**. **Älä pyydä keksimään hintaa** — näytä alla olevat haarukat ja kerää reaktiot.
 
-20. Millä hinnalla palvelu on **liian halpa** laadun kannalta?
-21. Millä hinnalla se on **löytö**?
-22. Millä hinnalla se on **kallis** mutta harkitsisit silti?
-23. Millä hinnalla se on **liian kallis**?
-24. Kuukausitilaus, raporttikohtainen vai paketti muiden salonkisovellusten kanssa?
+> Tutkimme kuukausitilausta trenditutkimukseen ja sisältöluonnoksiin.
+
+**Näytä nämä kuukausihinnat:**
+
+| Haarukka | EUR/kk |
+|----------|--------|
+| A | Alle €15 |
+| B | €15–25 |
+| C | €35–50 |
+| D | €70+ |
+
+20. Mikä on ensireaktio kuhunkin haarukkaan A–D? (**liian halpa** / **hyvä vastine** / **kallis mutta ehkä** / **liian kallis**)
+21. Mikä haarukka sopii parhaiten siihen, mitä näit demossa — ja miksi?
+22. Mitä tuohon "paras sopivuus" -haarukkaan pitäisi sisältyä, jotta se tuntuisi maksamisen arvoiselta?
+23. Kuukausitilaus, raporttikohtainen vai paketti muiden salonkisovellusten kanssa?
+
+Kirjaa reaktiot: [pricing-van-westendorp.md](../questionnaires/pricing-van-westendorp.md).
 
 ---
 
 ## F. Lopetus (5 min)
 
-25. Asteikko 0–10: Todennäköisyys kokeilla 30 päivän ilmaista pilottia?
-26. Ketä muuta meidän pitäisi haastatella?
-27. Voimmeko olla yhteydessä lanseerauksen yhteydessä?
+24. Asteikko 0–10: Todennäköisyys kokeilla 30 päivän ilmaista pilottia?
+25. Ketä muuta meidän pitäisi haastatella?
+26. Voimmeko olla yhteydessä lanseerauksen yhteydessä?
 
 **Kiitos.** Muistuta lahjakortista + pilottioikeudesta.
 

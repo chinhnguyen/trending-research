@@ -17,7 +17,7 @@
 |----------|---------|-----------------|
 | Beachhead market | VN / FI / INT / multi | Highest pilot score + WTP + recruitment ease |
 | MVP slice | Trends only / Trends + captions / Full content suite | Content preference + pain ranking |
-| Pricing model | Monthly tiers / per-report / bundled | Van Westendorp acceptable range |
+| Pricing model | Monthly tiers / per-report / bundled | Price-range reaction acceptable / best-fit bands |
 | AI content scope | Captions only / captions + hashtags / image prompts | Authenticity concerns by region |
 
 ## Exit criteria

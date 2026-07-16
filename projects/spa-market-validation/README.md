@@ -7,7 +7,7 @@ Market validation program for **Willbe Trends** — AI nail trend research and p
 1. Validate product–market fit across three geographies
 2. Confirm pain points around social profile maintenance and trend discovery
 3. Test appetite for trend research + content generation concepts
-4. Measure willingness to pay (Van Westendorp) by region
+4. Measure willingness to pay (price-range reactions) by region
 5. Understand AI-generated vs owner-generated content preferences
 
 ## Status tracker
@@ -92,7 +92,7 @@ See [specs/hypotheses.md](specs/hypotheses.md) for full detail.
 | H1 | Owners struggle to keep social content fresh and on-trend | ≥70% rate pain 4–5/5 |
 | H2 | Trend research + post ideas improve workflow materially | ≥60% cite ≥2 hrs/week saved or more posts |
 | H3 | Trends discovered via informal channels, not structured tools | Workflow documented in ≥80% of interviews |
-| H4 | Willingness to pay exists at SaaS price point | Van Westendorp acceptable band overlaps |
+| H4 | Willingness to pay exists at SaaS price point | Acceptable / best-fit price bands overlap |
 | H5 | AI vs UGC preference varies by geography and post type | Clear per-region pattern |
 
 ## Success metrics
