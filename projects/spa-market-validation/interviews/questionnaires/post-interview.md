@@ -39,15 +39,17 @@
 
 **Pilot likelihood (0–10):** ___
 
-## Van Westendorp (local currency: ___)
+## Price range reactions (local currency: ___)
 
-| Question | Amount |
-|----------|--------|
-| Too cheap (question quality) | |
-| Bargain | |
-| Expensive but consider | |
-| Too expensive | |
+| Range | Band (local) | Reaction (too cheap / good value / expensive but maybe / too expensive) |
+|-------|--------------|--------------------------------------------------------------------------|
+| A | | |
+| B | | |
+| C | | |
+| D | | |
 
+**Best-fit range (A–D):** ___  
+**Must-include at best-fit price:** ___  
 **Preferred pricing model:** Monthly / Per-report / Bundled / Unsure
 
 ## Content preferences

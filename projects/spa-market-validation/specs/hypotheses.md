@@ -54,11 +54,11 @@ Falsifiable assumptions for the spa owner market validation program. Mark each *
 
 **Statement:** Owners will pay a recurring monthly fee for trend research and content assistance at levels that support a viable business.
 
-**How we test:** Van Westendorp four-question pricing (section E); pilot likelihood score (0–10).
+**How we test:** Price-range reactions in section E (show bands A–D; do not ask them to invent a price); pilot likelihood score (0–10).
 
-**Success signal:** "Acceptable" price band (between "bargain" and "expensive") overlaps across regions and aligns with starter/pro tiers in [pricing-summary.md](../outcomes/pricing-summary.md).
+**Success signal:** Acceptable bands (labeled "good value" or "expensive but maybe") and best-fit picks overlap across regions and align with starter/pro tiers in [pricing-summary.md](../outcomes/pricing-summary.md).
 
-**Failure signal:** "Too expensive" threshold falls below operational cost; majority pilot score &lt;5.
+**Failure signal:** Majority mark Starter/Pro bands "too expensive"; majority pilot score &lt;5.
 
 | Result | Evidence | Date |
 |--------|----------|------|

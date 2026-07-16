@@ -1,27 +1,39 @@
-# Van Westendorp Pricing Instrument
+# Price Range Reaction Instrument
 
-Standard four-question pricing sensitivity analysis. Ask in **local currency** per month for a subscription including trend research + content drafts.
+Collect willingness-to-pay reactions by **showing price ranges** (not asking participants to invent a number). Ask in **local currency** per month for a subscription including trend research + content drafts.
+
+## Why ranges
+
+Open-ended "what would you pay?" questions are hard for salon owners to answer in the abstract and produce noisy data. Anchoring on a few concrete monthly bands yields clearer reactions and comparable answers across interviews.
 
 ## Script (English)
 
-> Imagine a monthly subscription that gives you weekly nail trend reports tailored to your salon, plus ready-to-edit Instagram captions and hashtags for each trend.
+> Imagine a monthly subscription that gives you weekly nail trend reports tailored to your salon, plus ready-to-edit Instagram captions and hashtags for each trend. I'll show a few monthly price ranges — tell me your reaction to each. You don't need to invent a price.
 
-1. At what monthly price would this be **so cheap** that you'd question the quality?
-2. At what monthly price would it be a **bargain** — great value?
-3. At what monthly price would it be **expensive**, but you'd still consider subscribing?
-4. At what monthly price would it be **too expensive** to consider?
+**Show these monthly ranges** (use the column for their region):
+
+| Range | Vietnam (VND) | Finland (EUR) | International (USD) |
+|-------|---------------|---------------|---------------------|
+| A | Under 200,000 | Under €15 | Under $15 |
+| B | 200,000–400,000 | €15–25 | $15–25 |
+| C | 500,000–900,000 | €35–50 | $35–55 |
+| D | 1,200,000+ | €70+ | $79+ |
+
+1. For each range A–D, what's your gut reaction? (**too cheap** / **good value** / **expensive but maybe** / **too expensive**)
+2. Which range feels like the best fit for what you saw in the demo — and why?
+3. At that "best fit" range, what would need to be included for it to feel worth paying?
 
 **Follow-up:** Would you prefer monthly subscription, pay-per-report, or bundled with salon software?
 
 ## Currency by region
 
-| Region | Currency | Example starter hypothesis |
-|--------|----------|----------------------------|
-| Vietnam | VND/month | 200,000 – 900,000 |
-| Finland | EUR/month | €15 – €50 |
-| International | USD/month | $15 – $55 |
+| Region | Currency | Bands shown |
+|--------|----------|-------------|
+| Vietnam | VND/month | Under 200k · 200k–400k · 500k–900k · 1.2M+ |
+| Finland | EUR/month | Under €15 · €15–25 · €35–50 · €70+ |
+| International | USD/month | Under $15 · $15–25 · $35–55 · $79+ |
 
-*Hypothesis ranges only — actual acceptable price comes from interview data.*
+*Bands are starter hypotheses aligned with indicative tiers — refine after interview synthesis.*
 
 ## Recording sheet (per participant)
 
@@ -30,29 +42,32 @@ Standard four-question pricing sensitivity analysis. Ask in **local currency** p
 | Participant code | |
 | Region | |
 | Currency | |
-| Too cheap | |
-| Bargain | |
-| Expensive (still consider) | |
-| Too expensive | |
+| Reaction — Range A | too cheap / good value / expensive but maybe / too expensive |
+| Reaction — Range B | |
+| Reaction — Range C | |
+| Reaction — Range D | |
+| Best-fit range (A–D) | |
+| Must-include at best-fit price | |
 | Preferred model | |
 | Pilot score (0–10) | |
 
 ## Analysis (M4)
 
-For each region, plot cumulative distributions:
+For each region, summarize:
 
-- **Point of Marginal Cheapness (PMC):** intersection of "too cheap" and "expensive"
-- **Point of Marginal Expensiveness (PME):** intersection of "bargain" and "too expensive"
-- **Acceptable price range:** between PMC and PME
+- **Modal reaction per band:** which label dominates for A–D
+- **Best-fit concentration:** which band interviewees pick most often
+- **Acceptable band:** ranges most often labeled "good value" or "expensive but maybe"
+- **Must-haves:** features required at the best-fit price
 
 Document results in [pricing-summary.md](../../outcomes/pricing-summary.md).
 
 ## Indicative tier mapping (pre-validation)
 
-| Tier | Description | INT (USD) | VN (VND) | FI (EUR) |
-|------|-------------|-----------|----------|----------|
-| Starter | Trends only | $15–25 | 200k–400k | €15–25 |
-| Pro | Trends + captions/hashtags | $35–55 | 500k–900k | €35–50 |
-| Studio | Multi-seat / white-label | $79+ | 1.2M+ | €70+ |
+| Tier | Description | INT (USD) | VN (VND) | FI (EUR) | Range |
+|------|-------------|-----------|----------|----------|-------|
+| Starter | Trends only | $15–25 | 200k–400k | €15–25 | B |
+| Pro | Trends + captions/hashtags | $35–55 | 500k–900k | €35–50 | C |
+| Studio | Multi-seat / white-label | $79+ | 1.2M+ | €70+ | D |
 
-Validate whether interview acceptable bands overlap these ranges.
+Validate whether interview "best fit" / acceptable reactions overlap these tiers.

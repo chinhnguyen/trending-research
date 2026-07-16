@@ -74,27 +74,35 @@ Reference [content-generation-concepts.md](../../specs/content-generation-concep
 
 ---
 
-## E. Willingness to pay — Van Westendorp (5 min)
+## E. Willingness to pay — price ranges (5 min)
 
-**Goal:** Validate H4. Ask in local currency.
+**Goal:** Validate H4. Ask in local currency. **Do not ask them to invent a price** — show the ranges below and collect reactions.
 
 > We're exploring a monthly subscription for trend research and content drafts.
 
-20. At what price would this be **so cheap** you'd question the quality?
-21. At what price is it a **bargain**?
-22. At what price is it **expensive** but you'd still consider it?
-23. At what price is it **too expensive**?
-24. Would you prefer monthly subscription, per-report, or bundled with other salon software?
+**Show these monthly ranges** (use the column for their region):
 
-Record exact numbers in [pricing-van-westendorp.md](../questionnaires/pricing-van-westendorp.md).
+| Range | Vietnam (VND) | Finland (EUR) | International (USD) |
+|-------|---------------|---------------|---------------------|
+| A | Under 200,000 | Under €15 | Under $15 |
+| B | 200,000–400,000 | €15–25 | $15–25 |
+| C | 500,000–900,000 | €35–50 | $35–55 |
+| D | 1,200,000+ | €70+ | $79+ |
+
+20. For each range A–D, what's your gut reaction? (**too cheap** / **good value** / **expensive but maybe** / **too expensive**)
+21. Which range feels like the best fit for what you saw in the demo — and why?
+22. At that "best fit" range, what would need to be included for it to feel worth paying?
+23. Would you prefer monthly subscription, per-report, or bundled with other salon software?
+
+Record reactions in [pricing-van-westendorp.md](../questionnaires/pricing-van-westendorp.md).
 
 ---
 
 ## F. Close (5 min)
 
-25. On a scale 0–10, how likely are you to try a free 30-day pilot?
-26. Who else should we talk to?
-27. May we follow up when we launch?
+24. On a scale 0–10, how likely are you to try a free 30-day pilot?
+25. Who else should we talk to?
+26. May we follow up when we launch?
 
 **Thank them.** Remind about incentive (gift card + pilot access).
 

@@ -58,15 +58,18 @@ _How they discover trends and create content today._
 
 **Demo tags:** 
 
-## Pricing (Van Westendorp)
+## Pricing (price range reactions)
 
-| | Amount ({currency}) |
-|---|---------------------|
-| Too cheap | |
-| Bargain | |
-| Expensive | |
-| Too expensive | |
+| Range | Band ({currency}) | Reaction |
+|-------|-------------------|----------|
+| A | | |
+| B | | |
+| C | | |
+| D | | |
 
+**Best-fit range:**  
+**Must-include at that price:**  
+**Preferred model:**  
 **Pilot likelihood (0–10):** 
 
 ## Content preferences

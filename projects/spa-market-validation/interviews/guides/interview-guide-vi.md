@@ -60,23 +60,35 @@ Theo [demo-script.md](../../specs/demo-script.md):
 
 ---
 
-## E. Sẵn sàng trả phí — Van Westendorp (5 phút)
+## E. Sẵn sàng trả phí — khoảng giá (5 phút)
 
-Hỏi bằng **VND/tháng**.
+Hỏi bằng **VND/tháng**. **Không yêu cầu họ tự nghĩ ra mức giá** — đưa các khoảng dưới đây và ghi phản ứng.
 
-20. Mức giá nào **rẻ đến mức** chị/em nghi ngờ chất lượng?
-21. Mức giá nào là **quá hời**?
-22. Mức giá nào **đắt** nhưng vẫn cân nhắc?
-23. Mức giá nào **quá đắt**?
-24. Thích trả theo tháng, theo báo cáo, hay gói với phần mềm tiệm khác?
+> Chúng tôi đang khám phá gói đăng ký hàng tháng cho nghiên cứu xu hướng và bản nháp nội dung.
+
+**Đưa các khoảng giá/tháng sau:**
+
+| Khoảng | VND/tháng |
+|--------|-----------|
+| A | Dưới 200.000 |
+| B | 200.000–400.000 |
+| C | 500.000–900.000 |
+| D | 1.200.000+ |
+
+20. Với từng khoảng A–D, phản ứng đầu tiên là gì? (**quá rẻ** / **đáng giá** / **đắt nhưng có thể cân nhắc** / **quá đắt**)
+21. Khoảng nào phù hợp nhất với những gì vừa xem trong demo — vì sao?
+22. Ở khoảng "phù hợp nhất" đó, cần bao gồm những gì để cảm thấy đáng trả tiền?
+23. Thích trả theo tháng, theo báo cáo, hay gói với phần mềm tiệm khác?
+
+Ghi phản ứng vào [pricing-van-westendorp.md](../questionnaires/pricing-van-westendorp.md).
 
 ---
 
 ## F. Kết thúc (5 phút)
 
-25. Thang 0–10: Khả năng thử pilot miễn phí 30 ngày?
-26. Nên giới thiệu thêm ai?
-27. Có thể liên hệ lại khi ra mắt không?
+24. Thang 0–10: Khả năng thử pilot miễn phí 30 ngày?
+25. Nên giới thiệu thêm ai?
+26. Có thể liên hệ lại khi ra mắt không?
 
 **Cảm ơn.** Nhắc quà tặng + quyền truy cập pilot.
 
