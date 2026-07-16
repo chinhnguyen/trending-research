@@ -26,6 +26,10 @@ Before first interview, confirm:
 - [ ] Zoom/Loom tested with recording + consent language ready
 - [ ] Team has rehearsed 45-min flow end-to-end
 
+OR
+
+- [x] Make sure website works at https://trending-research.wilbi.fi/
+
 ## Exit criteria
 
 Team can run a 45-minute interview end-to-end with demo + mock content cards.
