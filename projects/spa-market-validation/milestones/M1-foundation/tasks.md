@@ -6,14 +6,14 @@
 
 | ID | Task | Owner | Status | Outcome |
 |----|------|-------|--------|---------|
-| M1.1 | Write `hypotheses.md`, `icp-persona.md` | | Not started | [specs/hypotheses.md](../../specs/hypotheses.md), [specs/icp-persona.md](../../specs/icp-persona.md) |
+| M1.1 | Write `hypotheses.md`, `icp-persona.md` | | Done | [specs/hypotheses.md](../../specs/hypotheses.md), [specs/icp-persona.md](../../specs/icp-persona.md) |
 | M1.2 | Desk research: competitors & substitutes | ChatGPT | Done | [specs/competitor-landscape.md](../../specs/competitor-landscape.md) |
-| M1.3 | Define content-generation concepts to test | | Not started | [specs/content-generation-concepts.md](../../specs/content-generation-concepts.md) |
-| M1.4 | Prepare demo script + pre-run sample reports | | Not started | [specs/demo-script.md](../../specs/demo-script.md) |
-| M1.5 | Create mock social post samples | | Not started | [samples/market-validation/mock-social-post.json](../../../../samples/market-validation/mock-social-post.json) |
-| M1.6 | Draft interview guides + questionnaires (EN/VI/FI) | | Not started | [interviews/guides/](../../interviews/guides/), [interviews/questionnaires/](../../interviews/questionnaires/) |
-| M1.7 | Set up recording workflow | | Not started | [interviews/recordings/README.md](../../interviews/recordings/README.md) |
-| M1.8 | Complete pre-demo checklist | | Not started | [M1-foundation/tasks.md#pre-demo-checklist](tasks.md#pre-demo-checklist) |
+| M1.3 | Define content-generation concepts to test | | Done | [specs/content-generation-concepts.md](../../specs/content-generation-concepts.md) |
+| M1.4 | Prepare demo script + pre-run sample reports | | Done | [specs/demo-script.md](../../specs/demo-script.md) |
+| M1.5 | Create mock social post samples | | Done | [samples/market-validation/mock-social-post.json](../../../../samples/market-validation/mock-social-post.json) |
+| M1.6 | Draft interview guides + questionnaires (EN/VI/FI) | | Done | [interviews/guides/](../../interviews/guides/), [interviews/questionnaires/](../../interviews/questionnaires/) |
+| M1.7 | Set up recording workflow | | No need | [interviews/recordings/README.md](../../interviews/recordings/README.md) |
+| M1.8 | Complete pre-demo checklist | | Done | [M1-foundation/tasks.md#pre-demo-checklist](tasks.md#pre-demo-checklist) |
 
 ## Pre-demo checklist {#pre-demo-checklist}
 
