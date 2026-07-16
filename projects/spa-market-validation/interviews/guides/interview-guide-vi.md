@@ -8,7 +8,6 @@
 
 ## Trước khi bắt đầu
 
-- [ ] Đã xin phép ghi hình
 - [ ] Đã xem form trước phỏng vấn
 - [ ] Demo sẵn sàng ([demo-script.md](../../specs/demo-script.md))
 - [ ] Mock bài đăng mở sẵn ([mock-social-post.json](../../../../samples/market-validation/mock-social-post.json))

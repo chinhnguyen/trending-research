@@ -8,7 +8,6 @@
 
 ## Ennen aloitusta
 
-- [ ] Nauhoituslupa saatu
 - [ ] Esikysely tarkistettu
 - [ ] Demo valmis ([demo-script.md](../../specs/demo-script.md))
 - [ ] Mock-julkaisu avattu ([mock-social-post.json](../../../../samples/market-validation/mock-social-post.json))
