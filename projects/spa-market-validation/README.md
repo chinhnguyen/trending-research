@@ -1,10 +1,10 @@
-# Spa Owner Market Validation
+<img width="563" height="592" alt="image" src="https://github.com/user-attachments/assets/ca2d0cf0-abe9-452e-a3aa-14aeb4c78ab6" /># Spa Owner Market Validation
 
 Market validation program for **Willbe Trends** — AI nail trend research and proposed social content generation — targeting nail salon / nail spa owners in **Vietnam**, **Finland**, and **international** markets.
 
 ## Goals
 
-1. Validate product–market fit across three geographies
+1. Validate product–market fit 
 2. Confirm pain points around social profile maintenance and trend discovery
 3. Test appetite for trend research + content generation concepts
 4. Measure willingness to pay (price-range reactions) by region
@@ -25,7 +25,7 @@ Market validation program for **Willbe Trends** — AI nail trend research and p
 
 ## Recruitment tracker {#recruitment-tracker}
 
-Target: **6 Vietnam · 6 Finland · 6 International** (mix of solo artists and small salons).
+Target: **6 Vietnam** (mix of solo artists and small salons).
 
 | # | Code | Region | Salon | Status | Scheduled | Interviewer | Recording link |
 |---|------|--------|-------|--------|-----------|-------------|----------------|
@@ -35,18 +35,6 @@ Target: **6 Vietnam · 6 Finland · 6 International** (mix of solo artists and s
 | 4 | VN-04 | Vietnam | | Not contacted | | | |
 | 5 | VN-05 | Vietnam | | Not contacted | | | |
 | 6 | VN-06 | Vietnam | | Not contacted | | | |
-~~| 7 | FI-01 | Finland | | Not contacted | | | |~~
-~~| 8 | FI-02 | Finland | | Not contacted | | | |~~
-| 9 | FI-03 | Finland | | Not contacted | | | |
-| 10 | FI-04 | Finland | | Not contacted | | | |
-| 11 | FI-05 | Finland | | Not contacted | | | |
-| 12 | FI-06 | Finland | | Not contacted | | | |
-| 13 | INT-01 | International | | Not contacted | | | |
-| 14 | INT-02 | International | | Not contacted | | | |
-| 15 | INT-03 | International | | Not contacted | | | |
-| 16 | INT-04 | International | | Not contacted | | | |
-| 17 | INT-05 | International | | Not contacted | | | |
-| 18 | INT-06 | International | | Not contacted | | | |
 
 **Status values:** Not contacted → Screener sent → Scheduled → Completed → Summary done
 
@@ -54,17 +42,15 @@ Target: **6 Vietnam · 6 Finland · 6 International** (mix of solo artists and s
 
 | Region | Incentive | Notes |
 |--------|-----------|-------|
-| Vietnam | Free 3-month pilot + 500,000 VND gift card | Emphasize early access and Vietnamese support |
-| Finland | Free 3-month pilot + €25 gift card | Emphasize time savings and Nordic trend relevance |
-| International | Free 3-month pilot + $25 USD gift card | Flexible currency equivalent |
+| Vietnam | Free N-month pilot + gift card | Emphasize early access and Vietnamese support |
 
 Incentives are issued after a completed 45+ minute interview. Pilot access is granted when the product is ready — gift card is immediate.
 
 ## Recruitment channels
 
 - **Vietnam:** Facebook nail groups, Zalo communities, Instagram DMs to salon accounts, nail supplier networks (e.g. OPI distributors), personal network
-- **Finland:** Instagram nail artists, Finnish beauty associations, nail educators, Helsinki/Tampere salon directories
-- **International:** Instagram/TikTok nail creators, Reddit r/NailArt, personal network, beauty trade show contacts
+- ~~**Finland:** Instagram nail artists, Finnish beauty associations, nail educators, Helsinki/Tampere salon directories~~
+- ~~**International:** Instagram/TikTok nail creators, Reddit r/NailArt, personal network, beauty trade show contacts~~
 
 ## Folder map
 
@@ -97,7 +83,6 @@ See [specs/hypotheses.md](specs/hypotheses.md) for full detail.
 
 ## Success metrics
 
-- ≥18 completed interviews (6 per region)
 - All 5 hypotheses marked validate / invalidate / inconclusive
 - Clear beachhead region and MVP scope documented
 - ≥5 owners on pilot waitlist (stretch goal)
