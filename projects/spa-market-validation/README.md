@@ -35,8 +35,8 @@ Target: **6 Vietnam · 6 Finland · 6 International** (mix of solo artists and s
 | 4 | VN-04 | Vietnam | | Not contacted | | | |
 | 5 | VN-05 | Vietnam | | Not contacted | | | |
 | 6 | VN-06 | Vietnam | | Not contacted | | | |
-| 7 | FI-01 | Finland | | Not contacted | | | |
-| 8 | FI-02 | Finland | | Not contacted | | | |
+~~| 7 | FI-01 | Finland | | Not contacted | | | |~~
+~~| 8 | FI-02 | Finland | | Not contacted | | | |~~
 | 9 | FI-03 | Finland | | Not contacted | | | |
 | 10 | FI-04 | Finland | | Not contacted | | | |
 | 11 | FI-05 | Finland | | Not contacted | | | |
