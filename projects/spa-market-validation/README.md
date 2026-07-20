@@ -1,4 +1,4 @@
-<img width="563" height="592" alt="image" src="https://github.com/user-attachments/assets/ca2d0cf0-abe9-452e-a3aa-14aeb4c78ab6" /># Spa Owner Market Validation
+
 
 Market validation program for **Willbe Trends** — AI nail trend research and proposed social content generation — targeting nail salon / nail spa owners in **Vietnam**, **Finland**, and **international** markets.
 
