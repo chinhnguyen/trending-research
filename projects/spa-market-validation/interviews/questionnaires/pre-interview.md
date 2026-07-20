@@ -6,9 +6,9 @@ Send 24–48 hours before the scheduled call. Participant can fill via Google Fo
 
 By completing this form and participating in the interview, I agree that:
 
-- The interview may be **recorded** for internal research purposes
+~~- The interview may be **recorded** for internal research purposes~~
 - My responses may be used to improve product decisions
-- Recordings will **not** be shared publicly without my permission
+~~- Recordings will **not** be shared publicly without my permission~~
 - I may withdraw consent before or during the interview
 
 - [ ] I agree to the above
