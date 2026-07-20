@@ -6,8 +6,8 @@ Operational guide for M2. Target: **18 nail salon owners** (6 VN · 6 FI · 6 IN
 
 | Week | VN | FI | INT | Cumulative scheduled |
 |------|----|----|-----|-------------------|
-| 2 | 3 | 2 | 2 | 7 |
-| 3 | 3 | 4 | 4 | 18 |
+| 2 | 3 |  |  |  |~~
+| 3 | 3 |  |  |  |
 
 ## Channel playbook
 
