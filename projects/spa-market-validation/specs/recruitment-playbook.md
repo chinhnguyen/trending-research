@@ -25,29 +25,29 @@ Operational guide for M2. Target: **18 nail salon owners** (6 VN · 6 FI · 6 IN
 
 > Chào chị/em! Mình đang phát triển công cụ giúp tiệm nail bắt kịp trend và làm nội dung social nhanh hơn. Mình đang tìm chủ tiệm chia sẻ trải nghiệm trong buổi phỏng vấn 45 phút (có quà tặng + quyền dùng thử miễn phí). Chị/em có sẵn sàng trò chuyện không ạ?
 
-### Finland
+~~### Finland~~
 
-| Channel | Action | Owner | Status |
-|---------|--------|-------|--------|
-| Instagram nail artists | DM Helsinki, Tampere, Turku accounts | | |
-| Finnish nail educators | Ask for participant referrals | | |
-| Beauty trade contacts | Leverage industry connections | | |
-| Reddit / forums | r/Helsinki, nail artist communities | | |
+~~| Channel | Action | Owner | Status |~~
+~~|---------|--------|-------|--------|~~
+~~| Instagram nail artists | DM Helsinki, Tampere, Turku accounts | | |~~
+~~| Finnish nail educators | Ask for participant referrals | | |~~
+~~| Beauty trade contacts | Leverage industry connections | | |~~
+~~| Reddit / forums | r/Helsinki, nail artist communities | | |~~
 
-**Outreach (English):**
+~~**Outreach (English):**~~
 
 > Hi! We're building a tool to help nail salon owners stay on trend and create social content faster. Looking for salon owners for a 45-min compensated interview (gift card + free pilot). Open to a quick chat?
 
-### International
+~~### International~~
 
-| Channel | Action | Owner | Status |
-|---------|--------|-------|--------|
-| Instagram / TikTok | DM nail salons in US, UK, AU | | |
-| Personal network | Willbe team connections | | |
-| Reddit r/NailArt | Respect sub rules; DM interested parties | | |
-| Beauty trade shows | Follow up with contacts | | |
+~~| Channel | Action | Owner | Status |~~
+~~|---------|--------|-------|--------|~~
+~~| Instagram / TikTok | DM nail salons in US, UK, AU | | |~~
+~~| Personal network | Willbe team connections | | |~~
+~~| Reddit r/NailArt | Respect sub rules; DM interested parties | | |~~
+~~| Beauty trade shows | Follow up with contacts | | |~~
 
-## Scheduling workflow
+~## Scheduling workflow
 
 1. Screener response received → check [screener.md](../interviews/guides/screener.md) criteria
 2. Pass → assign participant code (VN-01 … INT-06)
@@ -77,14 +77,14 @@ Aim for diversity within each region:
 
 | Blocker | Action |
 |---------|--------|
-| &lt;3 FI responses by week 2 | Widen to nail artists on IG; offer €30 incentive |
-| Language barrier | Assign VI/FI interviewer |
+~~| &lt;3 FI responses by week 2 | Widen to nail artists on IG; offer €30 incentive |~~
+~~| Language barrier | Assign VI/FI interviewer |~~
 | No-shows | Over-recruit by 2 slots; waitlist from screener |
 
 ## Completion checklist
 
 - [ ] 6 VN participants scheduled
-- [ ] 6 FI participants scheduled
-- [ ] 6 INT participants scheduled
+~~- [ ] 6 FI participants scheduled~~
+~~- [ ] 6 INT participants scheduled~~
 - [ ] All pre-interview forms sent
 - [ ] Recruitment log updated in [M2 tasks](../milestones/M2-recruitment/tasks.md)
