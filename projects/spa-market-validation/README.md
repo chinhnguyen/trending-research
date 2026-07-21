@@ -87,7 +87,7 @@ See [specs/hypotheses.md](specs/hypotheses.md) for full detail.
 ## Success metrics
 
 - All 5 hypotheses marked validate / invalidate / inconclusive
-- Clear beachhead region and MVP scope documented
+- MVP scope documented
 - ≥5 owners on pilot waitlist (stretch goal)
 
 ## Quick links
