@@ -45,6 +45,10 @@ Target: **6 Vietnam** (mix of solo artists and small salons).
 
 Incentives are issued after a completed 45+ minute interview. Pilot access is granted when the product is ready — gift card is immediate.
 
+Ideas:
+- N: 3 months 
+- Coop Mart 100K VND giftcard - may not matter much if we could find the right users (who really see the values we are trying to provide)
+
 ## Recruitment channels
 
 - **Vietnam:** Facebook nail groups, Zalo communities, Instagram DMs to salon accounts, nail supplier networks (e.g. OPI distributors), personal network
