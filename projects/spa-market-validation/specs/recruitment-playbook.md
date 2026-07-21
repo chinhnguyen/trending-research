@@ -1,13 +1,13 @@
 # Recruitment Playbook
 
-Operational guide for M2. Target: **18 nail salon owners** (6 VN · 6 FI · 6 INT).
+Operational guide for M2. Target: **6 nail salon owners**.
 
 ## Weekly targets
 
-| Week | VN | FI | INT | Cumulative scheduled |
-|------|----|----|-----|-------------------|
-| 2 | 3 |  |  |  |~~
-| 3 | 3 |  |  |  |
+| Week | VN | Cumulative scheduled |
+|------|----|-------------------|
+| 2 | 3 |  |~~
+| 3 | 3 |  |
 
 ## Channel playbook
 
@@ -15,11 +15,11 @@ Operational guide for M2. Target: **18 nail salon owners** (6 VN · 6 FI · 6 IN
 
 | Channel | Action | Owner | Status |
 |---------|--------|-------|--------|
-| Facebook nail groups (HCMC, Hanoi) | Post screener + DM respondents | | |
-| Instagram DM | Message salons with 1k–20k followers, active posts | | |
-| Zalo groups | Share in nail tech communities | | |
-| Supplier network | Ask OPI/Gelish distributors for intros | | |
-| Personal network | Warm intros to salon owners | | |
+| Facebook nail groups (HCMC, Hanoi) | Post screener + DM respondents | Long | |
+| Instagram DM | Message salons with 1k–20k followers, active posts | Long | |
+| Zalo groups | Share in nail tech communities | Long | |
+| Supplier network | Ask OPI/Gelish distributors for intros | Long | |
+| Personal network | Warm intros to salon owners | Long | |
 
 **Outreach (Vietnamese):**
 
@@ -47,14 +47,14 @@ Operational guide for M2. Target: **18 nail salon owners** (6 VN · 6 FI · 6 IN
 ~~| Reddit r/NailArt | Respect sub rules; DM interested parties | | |~~
 ~~| Beauty trade shows | Follow up with contacts | | |~~
 
-~## Scheduling workflow
+## Scheduling workflow
 
 1. Screener response received → check [screener.md](../interviews/guides/screener.md) criteria
 2. Pass → assign participant code (VN-01 … INT-06)
 3. Send [pre-interview.md](../interviews/questionnaires/pre-interview.md) + consent
 4. Schedule via Calendly / Google Calendar (45-min slot)
 5. Update [README.md](../README.md) recruitment tracker
-6. Send reminder 24h before with Zoom link
+6. Send reminder 24h before 
 
 ## Incentive fulfillment
 
