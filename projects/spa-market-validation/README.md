@@ -1,7 +1,6 @@
 
 
-Market validation program for **Willbe Trends** — AI nail trend research and proposed social content generation — targeting nail salon / nail spa owners in **Vietnam**, **Finland**, and **international** markets.
-
+Market validation program for **Willbe Trends** — AI nail trend research and proposed social content generation — targeting nail salon / nail spa owners in **Vietnam**.
 ## Goals
 
 1. Validate product–market fit 
