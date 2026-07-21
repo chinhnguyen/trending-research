@@ -28,7 +28,7 @@ Target: **6 Vietnam** (mix of solo artists and small salons).
 
 | # | Code | Region | Salon | Status | Scheduled | Interviewer | Recording link |
 |---|------|--------|-------|--------|-----------|-------------|----------------|
-| 1 | VN-01 | Vietnam | | Screener sent | | | |
+| 1 | VN-01 | Vietnam | | Not contacted | | | |
 | 2 | VN-02 | Vietnam | | Not contacted | | | |
 | 3 | VN-03 | Vietnam | | Not contacted | | | |
 | 4 | VN-04 | Vietnam | | Not contacted | | | |
