@@ -46,8 +46,14 @@ Target: **6 Vietnam** (mix of solo artists and small salons).
 Incentives are issued after a completed 45+ minute interview. Pilot access is granted when the product is ready — gift card is immediate.
 
 Ideas:
-- N: 3 months 
-- Coop Mart 100K VND giftcard - may not matter much if we could find the right users (who really see the values we are trying to provide)
+- Grab GiftCard 200K
+- 3 months premium pro usages with features like:
+  - Generate video content
+  - Link mutiple channels (Instagram, TikTok, etc.)
+  - Add watermark (auto generate) on own images
+  - Schedule posts
+  - Unlimited number of posts
+  - TBD
 
 ## Recruitment channels
 
