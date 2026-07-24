@@ -45,7 +45,7 @@ Target: **6 Vietnam** (mix of solo artists and small salons).
 
 Incentives are issued after a completed 45+ minute interview. Pilot access is granted when the product is ready — gift card is immediate.
 
-Ideas:
+Decisions:
 - Grab GiftCard 200K
 - 3 months premium pro usages with features like:
   - Generate video content
